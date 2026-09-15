@@ -131,7 +131,7 @@ export class GameEngine {
         tutorialStep: 3,
         queryNodes: 1,
         cargoMode: 'query',
-        npcMessage: '读任务卡分三步：先看“分布”，地区或状态集中时要警惕某个 DN 变忙；再看“主要访问”，按用户、订单或时间查时要比较查询会问几个 DN；最后看规模和增长，越大越要重视成本。',
+        npcMessage: '先认识任务卡：主要访问就是这一波最常用的查找方式；分布就是数据天然容易集中在哪一类。主要访问和方案规则对得上，查询通常只要访问更少的仓库；分布越集中，越要防止某个 DN 过忙。',
       }
     }
     if (state.tutorialStep === 3) {
@@ -140,7 +140,7 @@ export class GameEngine {
         tutorialStep: 4,
         queryNodes: 1,
         cargoMode: 'query',
-        npcMessage: '“查询 1 DN”看要问几座仓库；“搬运 10%”看有多少请求要跨节点配合；“成本 9”看这套安排要占多少存储、同步等资源。把它们和任务卡的主要访问、分布放在一起看，数字才有意义。',
+        npcMessage: '方案卡下面的数字直接这样读：“查询 1 DN”就是访问 1 座仓库；“搬运 10%”就是每 100 次请求约有 10 次要跨仓库；“成本 9”就是这套方案的相对资源占用为 9，数值越小越省。主要访问帮你看查询，分布帮你看负载，规模和增长帮你看成本。',
       }
     }
     if (state.tutorialStep === 4) {

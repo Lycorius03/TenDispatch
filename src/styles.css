@@ -566,6 +566,21 @@ button:disabled { cursor:not-allowed; opacity:.45; }
 .ranked-death-rule { color: #ff9a47 !important; }
 .tutorial-action-card, .ranked-decision-desk { min-width: 0; flex: 1; }
 .tutorial-action-card { padding: 12px 20px; background: rgba(13, 36, 55, .7); border: 1px solid #315572; }
+.tutorial-task-preview { display: grid; gap: 5px; margin-top: 16px; padding: 12px 14px; border: 1px solid #315d77; background: rgba(9, 29, 44, .88); color: #b9d6e2; font-size: 12px; line-height: 1.45; }
+.tutorial-task-preview > b, .tutorial-option-preview > b { color: var(--cyan-bright); font: 600 12px/1 var(--display); letter-spacing: .08em; }
+.tutorial-task-preview strong { color: #effcff; }
+.tutorial-option-preview { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.tutorial-option-preview > b { grid-column: 1 / -1; }
+.tutorial-option-preview > span { display: grid; gap: 6px; min-height: 70px; padding: 10px; border: 1px solid #294d63; background: rgba(10, 31, 46, .8); }
+.tutorial-option-preview strong { color: #dff6ff; font-size: 13px; }
+.tutorial-option-preview em { color: #a7c7d4; font-size: 11px; font-style: normal; line-height: 1.4; }
+.tutorial-spotlight { position: absolute; z-index: 8; pointer-events: none; border: 1px solid var(--cyan); background: transparent; box-shadow: 0 0 0 2400px rgba(2, 8, 14, .72), 0 0 28px rgba(50, 199, 244, .42); }
+.tutorial-spotlight.is-scene { top: 204px; left: 740px; width: 440px; height: 230px; }
+.tutorial-spotlight.is-task { top: 838px; left: 78px; width: 504px; height: 280px; }
+.tutorial-spotlight.is-options { top: 838px; left: 620px; width: 1222px; height: 280px; }
+.tutorial-guide-dialog { position: absolute; z-index: 9; top: 455px; right: 80px; width: 520px; }
+.tutorial-guide-dialog > span { display: block; margin-bottom: 8px; color: var(--gold); font: 600 12px/1 var(--display); letter-spacing: .1em; }
+.tutorial-guide-dialog .npc-channel { margin: 0; border-color: #477e99; background: #0b2334; box-shadow: 0 10px 26px rgba(0, 0, 0, .32); }
 .tutorial-progress { display: flex; gap: 9px; margin-bottom: 16px; }
 .tutorial-progress i { min-width: 10px; height: 4px; flex: 1; background: #244158; }
 .tutorial-progress i.is-done { background: var(--cyan); box-shadow: 0 0 8px rgba(50, 199, 244, .4); }
