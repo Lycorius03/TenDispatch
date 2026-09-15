@@ -114,7 +114,7 @@ export class GameEngine {
         ...state,
         tutorialStep: 1,
         cargoMode: 'write',
-        npcMessage: '先看画面：上方入口来的货物会经过 CN，再送到下面三个 DN。操作重点在下方的方案卡；选完点“确认”，然后看哪个 DN 变忙。',
+        npcMessage: '先看画面：上方是数据入口，中间的 CN 是调度台，下方三个 DN 是存放和处理数据的节点。操作重点在下方的方案卡；选完点“确认”，然后看哪个 DN 变忙。',
       }
     }
     if (state.tutorialStep === 1) {
