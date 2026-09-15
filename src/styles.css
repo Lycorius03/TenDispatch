@@ -566,10 +566,7 @@ button:disabled { cursor:not-allowed; opacity:.45; }
 .ranked-death-rule { color: #ff9a47 !important; }
 .tutorial-action-card, .ranked-decision-desk { min-width: 0; flex: 1; }
 .tutorial-action-card { padding: 12px 20px; background: rgba(13, 36, 55, .7); border: 1px solid #315572; }
-.tutorial-task-preview { box-sizing: border-box; display: grid; width: 100%; gap: 5px; margin-top: 0; padding: 12px 14px; border: 1px solid #315d77; background: rgba(9, 29, 44, .88); color: #b9d6e2; font-size: 12px; line-height: 1.45; }
-.tutorial-task-preview > b, .tutorial-option-preview > b { color: var(--cyan-bright); font: 600 12px/1 var(--display); letter-spacing: .08em; }
-.tutorial-task-preview > span { display: block; min-width: 0; overflow-wrap: anywhere; }
-.tutorial-task-preview strong { color: #effcff; }
+.tutorial-option-preview > b { color: var(--cyan-bright); font: 600 12px/1 var(--display); letter-spacing: .08em; }
 .tutorial-option-preview { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
 .tutorial-option-preview > b { grid-column: 1 / -1; }
 .tutorial-option-preview > span { display: grid; gap: 6px; min-height: 70px; padding: 10px; border: 1px solid #294d63; background: rgba(10, 31, 46, .8); }
