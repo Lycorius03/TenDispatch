@@ -175,9 +175,9 @@ function TutorialWelcome({ message, onStart, onExit }: { message: string; onStar
       <span className="tutorial-welcome-kicker">INCOMING MESSAGE / 教学频道已接入</span>
       <h2 id="tutorial-welcome-title">欢迎来到 TenDispatch</h2>
       <NPCChannel message={message} />
-      <div className="tutorial-briefing-grid"><div><b>你是谁</b><span>数据物流中心的首席调度官</span></div><div><b>你要做什么</b><span>为每批数据选择合适的存放与查询策略</span></div><div><b>你要平衡什么</b><span>DN 负载、查询路径、跨节点搬运与资源成本</span></div><div><b>怎么学习</b><span>先听背景，再完成 3 波不限时训练，每波都可重试</span></div></div>
+      <div className="tutorial-briefing-grid"><div><b>你是谁</b><span>数据物流中心的首席调度官</span></div><div><b>你要做什么</b><span>为每批数据选择合适的存放与查询策略</span></div><div><b>你要平衡什么</b><span>DN 负载、查询路径、跨节点搬运与资源成本</span></div><div><b>怎么学习</b><span>按步骤看提示，再完成 3 波不限时训练，每波都可重试</span></div></div>
       <p className="tutorial-welcome-note">正式模式会在 90 秒内连续到达 14 波数据，但教学不会计时、不会计分、不会中途失败。这里的目标是学会读信息和做取舍，不是背下某一个答案。</p>
-      <div className="tutorial-welcome-actions"><button className="secondary-action" onClick={onExit}>暂时退出</button><button className="confirm-dispatch" onClick={onStart}>听 NPC 从背景讲起 →</button></div>
+      <div className="tutorial-welcome-actions"><button className="secondary-action" onClick={onExit}>暂时退出</button><button className="confirm-dispatch" onClick={onStart}>开始第一步：认识工作台 →</button></div>
     </div>
   </div>
 }
