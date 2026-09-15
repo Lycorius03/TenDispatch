@@ -548,9 +548,10 @@ button:disabled { cursor:not-allowed; opacity:.45; }
 .tutorial-header-readout { min-width: 250px; }
 .ranked-header-readout.is-dead b { color: var(--danger); }
 .ranked-header-readout.is-dead i::after { background: var(--danger); }
-.modern-status-bar { position: absolute; z-index: 6; top: 103px; left: 80px; right: 80px; height: 68px; display: grid; grid-template-columns: 1.2fr 1fr 1fr .85fr; border: 1px solid #284a66; background: rgba(7, 20, 34, .92); }
-.modern-metric { min-width: 0; padding: 10px 18px; display: flex; flex-direction: column; justify-content: center; gap: 6px; border-right: 1px solid #1e3a52; }
-.modern-metric:last-child { border-right: 0; }
+.modern-status-bar { position: absolute; z-index: 6; top: 190px; left: 80px; width: 620px; height: 112px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: repeat(2, 1fr); border: 1px solid #284a66; background: rgba(7, 20, 34, .92); }
+.modern-metric { min-width: 0; padding: 8px 14px; display: flex; flex-direction: column; justify-content: center; gap: 4px; border-right: 1px solid #1e3a52; border-bottom: 1px solid #1e3a52; }
+.modern-metric:nth-child(2n) { border-right: 0; }
+.modern-metric:nth-child(n + 3) { border-bottom: 0; }
 .modern-metric span { color: #7091a5; font-size: 11px; }
 .modern-metric strong { overflow: hidden; color: #d5eef6; font: 600 15px/1 var(--display); text-overflow: ellipsis; white-space: nowrap; }
 .modern-metric.tone-warning strong { color: var(--orange); }

@@ -116,7 +116,7 @@ function ModernConsole(p: GamePageProps & { displayLoads: GameState['dnLoads'] }
   const seconds = Math.min(90, Math.floor((now - s.gameStartedAt) / 1000))
   const remaining = Math.max(0, 90 - seconds)
   const decisionRemaining = ranked && s.phase === 'ranked' ? Math.max(0, rankedDecisionWindowMs / 1000 - (now - s.waveStartedAt) / 1000) : 0
-  const effectiveMode = paused ? 'idle' : dead ? 'idle' : ranked && wave?.finalRush && (result || selected) ? 'sync' : result ? s.cargoMode : ranked && selected ? (selected === 'replicated' ? 'replicate' : wave?.options.find((item) => item.id === selected)?.queryNodes === 1 ? 'write' : 'query') : 'idle'
+  const effectiveMode = paused ? 'idle' : !ranked ? s.cargoMode : dead ? 'idle' : wave?.finalRush && (result || selected) ? 'sync' : result ? s.cargoMode : selected ? (selected === 'replicated' ? 'replicate' : wave?.options.find((item) => item.id === selected)?.queryNodes === 1 ? 'write' : 'query') : 'idle'
   const projected = wave?.options.map((option) => ({
     ...option,
     loads: previewRankedLoads(s, wave, option),
