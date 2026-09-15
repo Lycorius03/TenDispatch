@@ -1,0 +1,41 @@
+export type GameEventType =
+  | 'game_started'
+  | 'tutorial_completed'
+  | 'dispatch_rule_selected'
+  | 'data_skew_triggered'
+  | 'dispatch_rule_changed'
+  | 'query_started'
+  | 'query_completed'
+  | 'replication_selected'
+  | 'replication_changed'
+  | 'gtm_event_triggered'
+  | 'hint_used'
+  | 'final_dispatch_started'
+  | 'final_dispatch_completed'
+  | 'game_completed'
+
+export interface GameEvent {
+  type: GameEventType
+  stage: string
+  value?: string
+  timestamp: number
+  duration?: number
+  attempt?: number
+  result?: string
+}
+
+export class EventTracker {
+  private events: GameEvent[] = []
+
+  track(event: Omit<GameEvent, 'timestamp'>) {
+    this.events.push({ ...event, timestamp: Date.now() })
+  }
+
+  getEvents() {
+    return [...this.events]
+  }
+
+  reset() {
+    this.events = []
+  }
+}
