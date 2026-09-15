@@ -92,7 +92,7 @@ export class GameEngine {
         tutorialStrategy: undefined,
         cargoMode: 'idle',
         deathReason: undefined,
-        npcMessage: '欢迎来到 OpenTenBase 数据物流中心。我是科成-开放原子开源社团联络员；你将担任首席调度官，决定数据如何进入三个 DN，并在查询效率、节点负载和资源成本之间做取舍。',
+        npcMessage: '欢迎来到 TenDispatch！你要做的是：看任务卡 → 比较三个方案 → 选一个 → 点击确认 → 看结果。教学不限时、不扣分，选错了还能重试。我会每一步告诉你先看哪里。',
       }
     }
     return {
@@ -114,7 +114,7 @@ export class GameEngine {
         ...state,
         tutorialStep: 1,
         cargoMode: 'write',
-        npcMessage: '先认识工作台：业务数据从上方入口进入 CN。CN 像总调度台，判断数据应该送往哪里；下方三个 DN 是实际保存和查询数据的仓库。你的每次选择都会改变它们的状态。',
+        npcMessage: '先看画面：上方入口来的货物会经过 CN，再送到下面三个 DN。你不用操作货物，只需要在下方选方案；选完点“确认”，然后看哪个 DN 变忙。',
       }
     }
     if (state.tutorialStep === 1) {
@@ -122,7 +122,7 @@ export class GameEngine {
         ...state,
         tutorialStep: 2,
         cargoMode: 'write',
-        npcMessage: 'Shard（分片）是决定“每条数据主要放在哪个 DN”；Replication（复制）是决定“要不要在多个 DN 保存副本”。分片帮助分摊压力，复制可能缩短查询，但会增加存储与同步成本。',
+        npcMessage: '每个方案都是一种放数据的方法。先看任务卡里的“主要访问”，再看选项下面三行信息；暂时不用背术语，只要比较谁更容易堵、谁要问更多仓库。',
       }
     }
     if (state.tutorialStep === 2) {
@@ -131,7 +131,7 @@ export class GameEngine {
         tutorialStep: 3,
         queryNodes: 1,
         cargoMode: 'query',
-        npcMessage: '查询条件决定要问几个 DN。如果数据按用户编号分片，按用户编号查询通常只问一个 DN；如果按地区存、却按用户查，就可能询问多个 DN。路径越长，搬运和等待通常越多。',
+        npcMessage: '把“主要访问”当成玩家目标：找用户就优先看能不能直达，公共数据就看是否需要每次绕路。你会在训练波里亲自试一次。',
       }
     }
     if (state.tutorialStep === 3) {
@@ -140,7 +140,7 @@ export class GameEngine {
         tutorialStep: 4,
         queryNodes: 1,
         cargoMode: 'query',
-        npcMessage: '每个方案下方有三项条件：查询 DN 数量影响查询项 30 分；跨节点搬运和策略成本共同影响资源项 20 分。还要结合 DN 负载 40 分与决策速度 10 分。教学关不限时，你可以慢慢比较。',
+        npcMessage: '选项下面的“查询 1 DN / 搬运 10% / 成本 9”就是这条方案的使用说明：查询是要问几座仓库，搬运是要跨仓库配合多少，成本是要占多少资源。先读它们，再看当前负载。',
       }
     }
     if (state.tutorialStep === 4) {
@@ -154,7 +154,7 @@ export class GameEngine {
         tutorialStrategy: undefined,
         queryNodes: 0,
         cargoMode: 'idle',
-        npcMessage: '训练 1：先读数据的分布特征和主要查询方式，再比较三种分片方案。不要猜术语，问自己“会不会集中到一个节点”和“查询能否直达”。',
+        npcMessage: '训练 1 开始。操作顺序只有三步：读任务卡 → 选方案 → 确认。点确认后我再解释结果；本波不限时。',
       }
     }
     if (state.tutorialStep === 6 && state.tutorialWaveCompleted) {
@@ -166,7 +166,7 @@ export class GameEngine {
         tutorialWaveCompleted: false,
         tutorialStrategy: undefined,
         cargoMode: 'idle',
-        npcMessage: '训练 2：现在是所有业务都会频繁读取的小型公共目录。比较“只存一份”和“复制三份”，看看节省存储与减少跨节点访问之间的交换。',
+        npcMessage: '训练 2 开始。先看这批数据会不会被所有业务反复读取，再比较“少存一份”和“多存副本”哪种代价更适合本题。',
       }
     }
     if (state.tutorialStep === 8 && state.tutorialWaveCompleted) {
@@ -178,7 +178,7 @@ export class GameEngine {
         tutorialWaveCompleted: false,
         tutorialStrategy: undefined,
         cargoMode: 'idle',
-        npcMessage: '训练 3：最后处理持续增长的海量业务日志。这次不能只看查询 DN 数量，还要把数据规模、写入增长、复制成本和当前节点余量一起考虑。',
+        npcMessage: '训练 3 开始。先看数据规模和增长速度，再看当前 DN 余量，最后比较查询、搬运和成本；不要只盯着“查询 1 DN”。',
       }
     }
     if (state.tutorialStep === 10 && state.tutorialWaveCompleted) {
@@ -186,7 +186,7 @@ export class GameEngine {
         ...state,
         tutorialStep: 11,
         cargoMode: 'idle',
-        npcMessage: '三次训练完成。Ranked 会连续处理 14 波，状态不会在波次间重置；预测能看趋势但限制评级，撤回会扣分并清空 Combo。每波 4 秒，未确认直接记 0 分。',
+        npcMessage: '三波训练完成。进入正式模式后仍按同一顺序操作：看任务卡、读参数、选方案、确认、看结果。正式模式才会计时；没确认的波次按 0 分处理。',
       }
     }
     if (state.tutorialStep === 11) {
@@ -197,7 +197,7 @@ export class GameEngine {
         tutorialCompleted: true,
         screen: 'home',
         phase: 'complete',
-        npcMessage: '教学关完成。现在可以进入 Ranked，用同一套规则连续处理 14 波。',
+        npcMessage: '教学完成！如果刚才能说出“我为什么选它”，就已经学会了。回到首页后可开始 Ranked；遇到不懂的参数，点击“决策数据说明”。',
       }
     }
     return state
@@ -221,7 +221,7 @@ export class GameEngine {
       gameStartedAt: now,
       stageStartedAt: now,
       waveStartedAt: now,
-      npcMessage: '教学重新开始。先听联络员介绍任务背景，再用三次训练把完整决策方法练一遍。',
+      npcMessage: '教学重新开始。记住操作顺序：看任务卡、读参数、选方案、确认、看结果；三波训练会逐步练完。',
     }
   }
 

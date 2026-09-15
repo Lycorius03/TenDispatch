@@ -178,11 +178,11 @@ button { border: 0; cursor: pointer; }
 .npc-avatar i { position: absolute; right: 12px; bottom: 18px; width: 8px; height: 8px; background: #74eb9b; border: 2px solid #0d252f; border-radius: 50%; }
 .npc-content { padding: 13px 16px; }
 .npc-content header { display: flex; align-items: center; justify-content: space-between; }
-.npc-content header > span { display: flex; align-items: center; gap: 6px; color: #7399a2; font-size: 8px; font-weight: 700; letter-spacing: .08em; }
+.npc-content header > span { display: flex; align-items: center; gap: 6px; color: #7399a2; font-size: 10px; font-weight: 700; letter-spacing: .08em; }
 .npc-content header svg { width: 12px; }
 .npc-content header i { color: #74eb9b; font: normal 600 7px/1 var(--display); letter-spacing: .12em; }
-.npc-content p { margin: 7px 0 5px; color: #c5e2e6; font-size: 12px; line-height: 1.55; }
-.npc-content small { color: #82a5ad; font-size: 9px; }
+.npc-content p { margin: 7px 0 5px; color: #c5e2e6; font-size: 15px; line-height: 1.7; }
+.npc-content small { color: #82a5ad; font-size: 10px; }
 .control-column { display: flex; flex-direction: column; }
 .control-label { min-height: 52px; padding: 10px 14px; display: flex; flex-direction: column; justify-content: center; gap: 4px; background: #0d2731; border: 1px solid var(--line); border-bottom: 2px solid var(--cyan-dim); }
 .control-label span { color: #57818a; font: 600 8px/1 var(--display); letter-spacing: .12em; }
@@ -570,11 +570,12 @@ button:disabled { cursor:not-allowed; opacity:.45; }
 .tutorial-progress i.is-done { background: var(--cyan); box-shadow: 0 0 8px rgba(50, 199, 244, .4); }
 .tutorial-action-card p { margin: 9px 0; color: #9db8c9; font-size: 13px; }
 .tutorial-action-card .confirm-dispatch { margin-top: 8px; width: 230px; }
-.tutorial-npc-coach .npc-channel { min-height: 76px; margin: 0 0 10px; grid-template-columns: 58px 1fr; background: #0b2233; border-color: #2c546c; }
-.tutorial-npc-coach .npc-avatar > img { width: 36px; height: 36px; }
-.tutorial-npc-coach .npc-content { padding: 9px 12px; }
-.tutorial-npc-coach .npc-content p { margin: 5px 0 2px; font-size: 11px; line-height: 1.45; }
-.tutorial-npc-coach .npc-content small { font-size: 8px; }
+.tutorial-npc-coach .npc-channel { min-height: 112px; margin: 0 0 10px; grid-template-columns: 72px 1fr; background: #0b2233; border-color: #2c546c; }
+.tutorial-npc-coach .npc-avatar > img { width: 48px; height: 48px; }
+.tutorial-npc-coach .npc-content { padding: 13px 16px; }
+.tutorial-npc-coach .npc-content header { font-size: 12px; }
+.tutorial-npc-coach .npc-content p { margin: 7px 0 4px; font-size: 15px; line-height: 1.65; }
+.tutorial-npc-coach .npc-content small { font-size: 10px; }
 .tutorial-action-row { display: flex; align-items: center; gap: 12px; }
 .tutorial-action-row .confirm-dispatch { margin-top: 8px; }
 .tutorial-action-row .secondary-action { min-height: 44px; padding: 0 16px; }
@@ -589,8 +590,10 @@ button:disabled { cursor:not-allowed; opacity:.45; }
 .tutorial-welcome .npc-avatar { min-height: 116px; }
 .tutorial-welcome .npc-avatar > img { width: 70px; height: 70px; }
 .tutorial-welcome .npc-content { padding: 18px 20px; }
-.tutorial-welcome .npc-content header { color: #e2f7ff; font-size: 14px; }
-.tutorial-welcome .npc-content p { margin: 10px 0 6px; color: #d1eaf1; font-size: 15px; line-height: 1.65; }
+.tutorial-welcome .npc-content header { color: #e2f7ff; font-size: 16px; }
+.tutorial-welcome .npc-content p { margin: 10px 0 6px; color: #d1eaf1; font-size: 18px; line-height: 1.7; }
+.tutorial-welcome .npc-content header > span { font-size: 12px; }
+.tutorial-welcome .npc-content small { font-size: 11px; }
 .tutorial-welcome-note { margin: 20px 0 18px; color: #9ab9c8; font-size: 13px; line-height: 1.6; }
 .tutorial-welcome .confirm-dispatch { width: 230px; height: 48px; }
 .tutorial-briefing-grid { margin-top: 18px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }

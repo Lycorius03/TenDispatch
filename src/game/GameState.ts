@@ -218,7 +218,7 @@ export const createTutorialState = (): GameState => {
     tutorialWaveStartLoads: [22, 24, 20],
     tutorialStrategy: undefined,
     deathReason: undefined,
-    npcMessage: '欢迎来到 OpenTenBase 数据物流中心。我是科成-开放原子开源社团联络员；你将担任首席调度官，学习怎样在节点负载、查询效率和资源成本之间做取舍。',
+    npcMessage: '欢迎来到 TenDispatch！你要做的是：看任务卡 → 比较三个方案 → 选一个 → 点击确认 → 看结果。教学不限时、不扣分，选错了还能重试。我会每一步告诉你先看哪里。',
   }
 }
 
