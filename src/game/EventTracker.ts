@@ -1,6 +1,7 @@
 export type GameEventType =
   | 'game_started'
   | 'tutorial_completed'
+  | 'tutorial_wave_completed'
   | 'dispatch_rule_selected'
   | 'data_skew_triggered'
   | 'dispatch_rule_changed'
@@ -15,6 +16,7 @@ export type GameEventType =
   | 'game_completed'
   | 'ranked_wave_started'
   | 'ranked_wave_completed'
+  | 'ranked_game_over'
   | 'prediction_used'
   | 'undo_used'
 

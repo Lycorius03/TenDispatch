@@ -71,6 +71,7 @@ export class GameEngine {
         gameStartedAt: now,
         waveStartedAt: now,
         cargoMode: 'idle',
+        deathReason: undefined,
         npcMessage: 'RANKED 线路已开启。先看当前状态，再在 4 秒内决定这一波怎么放。',
       }
     }
@@ -85,8 +86,11 @@ export class GameEngine {
         waveStartedAt: now,
         tutorialStep: 0,
         tutorialCompleted: false,
+        tutorialWaveCompleted: false,
+        tutorialStrategy: undefined,
         cargoMode: 'idle',
-        npcMessage: '教学频道已连接。先认识 CN：数据会先抵达中央调度中心。',
+        deathReason: undefined,
+        npcMessage: '首席调度官，欢迎来到 TenDispatch！我是科成-开放原子开源社团联络员，接下来带你完成第一波教学关。',
       }
     }
     return {
@@ -103,35 +107,99 @@ export class GameEngine {
 
   completeTutorialStep(state: GameState): GameState {
     if (state.mode !== 'tutorial' || state.phase !== 'tutorial') return state
-    const nextStep = Math.min(4, state.tutorialStep + 1)
-    const messages = [
-      'CN 是中央调度中心：数据先到这里，再由它决定走向哪个 DN。',
-      'DN 是数据节点：三个仓库负责真正保存和处理数据。',
-      'Shard 是分片：把数据合理分散到多个 DN，避免一个仓库独自承压。',
-      'Replication 是复制：小型高频公共数据可以复制，大型业务数据不应随意复制。',
-    ]
-    if (nextStep >= 4) {
+    if (state.tutorialStep === 0) {
+      return {
+        ...state,
+        tutorialStep: 1,
+        cargoMode: 'write',
+        npcMessage: '欢迎进入教学关。CN 负责接收和调度，三个 DN 负责保存与处理；先看懂这条数据链路。',
+      }
+    }
+    if (state.tutorialStep === 1) {
+      return {
+        ...state,
+        tutorialStep: 2,
+        cargoMode: 'write',
+        npcMessage: 'Shard 决定数据怎样分到多个 DN；Replication 是复制副本。小型高频公共数据可以复制，大型业务数据要谨慎。',
+      }
+    }
+    if (state.tutorialStep === 2) {
+      return {
+        ...state,
+        tutorialStep: 3,
+        dnLoads: [22, 24, 20],
+        cargoMode: 'idle',
+        npcMessage: '教学关已载入 RANKED WAVE 01 / 14：用户活动记录进入。请选择一种分片策略，观察三个 DN 的结果。',
+      }
+    }
+    if (state.tutorialStep === 4 && state.tutorialWaveCompleted) {
       this.tracker.track({ type: 'tutorial_completed', stage: 'tutorial', duration: elapsedSeconds(state.gameStartedAt) })
       return {
         ...state,
-        tutorialStep: 4,
+        tutorialStep: 5,
         tutorialCompleted: true,
         screen: 'home',
         phase: 'complete',
-        npcMessage: '教学完成。现在可以进入 Ranked，用同一套规则在 14 波里冲击高分。',
+        npcMessage: '教学关完成。现在可以进入 Ranked，用同一套规则连续处理 14 波。',
       }
     }
-    this.tracker.track({ type: 'tutorial_completed', stage: `tutorial-${nextStep}`, result: messages[nextStep] })
-    return {
-      ...state,
-      tutorialStep: nextStep,
-      npcMessage: messages[nextStep],
-    }
+    return state
   }
 
   resetTutorial(state: GameState): GameState {
     if (state.mode !== 'tutorial') return state
-    return { ...state, tutorialStep: 0, tutorialCompleted: false, screen: 'game', phase: 'tutorial', npcMessage: '教学重新开始。先看 CN，再看三个 DN。' }
+    const now = Date.now()
+    return {
+      ...state,
+      tutorialStep: 0,
+      tutorialCompleted: false,
+      tutorialWaveCompleted: false,
+      tutorialStrategy: undefined,
+      screen: 'game',
+      phase: 'tutorial',
+      dnLoads: [18, 16, 17],
+      cargoMode: 'idle',
+      gameStartedAt: now,
+      stageStartedAt: now,
+      waveStartedAt: now,
+      npcMessage: '教学重新开始。欢迎回来，先听联络员介绍这座数据调度中心。',
+    }
+  }
+
+  selectTutorialWave(state: GameState, strategy: RankedStrategy): GameState {
+    if (state.mode !== 'tutorial' || state.phase !== 'tutorial' || state.tutorialStep !== 3) return state
+    const wave = getRankedWave(0)
+    const selected = wave.options.find((option) => option.id === strategy) ?? wave.options[0]
+    const loads = this.projectRankedLoads(state, wave.id, selected)
+    const peak = Math.max(...loads)
+    const systemStatus = peak >= 95 ? 'OVERLOAD' : peak >= 80 ? 'HIGH LOAD' : 'STABLE'
+    this.tracker.track({ type: 'tutorial_wave_completed', stage: 'tutorial-wave-1', value: selected.id, result: loads.join('/') })
+    return {
+      ...state,
+      tutorialStep: 4,
+      tutorialWaveCompleted: true,
+      tutorialStrategy: selected.id,
+      dnLoads: loads,
+      queryNodes: selected.queryNodes,
+      systemStatus,
+      cargoMode: selected.queryNodes > 1 ? 'query' : 'write',
+      npcMessage: `${selected.note} 本教学关只演示一波，不计分，也不会因为选错而中断。`,
+    }
+  }
+
+  retryTutorialWave(state: GameState): GameState {
+    if (state.mode !== 'tutorial' || state.phase !== 'tutorial' || state.tutorialStep !== 4) return state
+    return {
+      ...state,
+      tutorialStep: 3,
+      tutorialWaveCompleted: false,
+      tutorialStrategy: undefined,
+      dnLoads: [22, 24, 20],
+      queryNodes: 0,
+      systemStatus: 'STABLE',
+      cargoMode: 'idle',
+      npcMessage: '再试一次教学关。先看三个策略的分布方式，再确认你的选择。',
+    }
   }
 
   getRankedPredictions(state: GameState) {
@@ -217,6 +285,25 @@ export class GameEngine {
     const nextPerfect = state.perfectCount + Number(grade === 'PERFECT')
     const peak = Math.max(...loads)
     const systemStatus = peak >= 95 ? 'OVERLOAD' : peak >= 80 ? 'HIGH LOAD' : 'STABLE'
+    const overloadedNodes = loads
+      .map((load, index) => load >= 100 ? `DN-${String(index + 1).padStart(2, '0')}` : '')
+      .filter(Boolean)
+    if (overloadedNodes.length > 0) {
+      const reason = `${overloadedNodes.join('、')} 负载已满（100%）`
+      const deathMessage = `${reason}。极速模式规则：任一节点达到 100% 立即结束本局。`
+      this.tracker.track({ type: 'ranked_game_over', stage: `wave-${wave.id}`, value: selected.id, result: reason, duration: actualDecisionMs })
+      return {
+        ...state,
+        phase: 'ranked-dead',
+        dnLoads: loads,
+        queryNodes: selected.queryNodes,
+        systemStatus: 'OVERLOAD',
+        lastDecisionStrategy: selected.id,
+        deathReason: deathMessage,
+        cargoMode: 'idle',
+        npcMessage: `调度中止：${deathMessage}`,
+      }
+    }
     const currentLoss = 100 - score.total
     const worstWave = !state.worstWave || currentLoss > state.worstWave.lostPoints
       ? { wave: wave.id, lostPoints: currentLoss, reason: result.note }

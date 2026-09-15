@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { GameEngine, comboMultiplier } from '../src/game/GameEngine.ts'
-import { createRankedState } from '../src/game/GameState.ts'
+import { createRankedState, createTutorialState } from '../src/game/GameState.ts'
 import { EventTracker } from '../src/game/EventTracker.ts'
 import { rankedWaves, rankedWaveArrivalSeconds } from '../src/config/rankedWaves.ts'
 import { ScoreEngine } from '../src/game/ScoreEngine.ts'
@@ -49,5 +49,34 @@ let timeout = engine.start(createRankedState('TD-TIMEOUT'), '超时测试')
 timeout = engine.submitRankedWave(timeout, 'not-a-strategy', 4001)
 assert.equal(timeout.waveResults[0].timedOut, true)
 assert.equal(timeout.waveResults[0].score.decisionSpeed, 0)
+
+let tutorial = engine.start(createTutorialState(), '教学测试')
+tutorial = engine.completeTutorialStep(tutorial)
+tutorial = engine.completeTutorialStep(tutorial)
+tutorial = engine.completeTutorialStep(tutorial)
+assert.equal(tutorial.tutorialStep, 3)
+tutorial = engine.selectTutorialWave(tutorial, 'status')
+assert.equal(tutorial.tutorialStep, 4)
+assert.equal(tutorial.tutorialWaveCompleted, true)
+assert.equal(tutorial.tutorialStrategy, 'status')
+tutorial = engine.retryTutorialWave(tutorial)
+assert.equal(tutorial.tutorialStep, 3)
+assert.equal(tutorial.tutorialWaveCompleted, false)
+tutorial = engine.selectTutorialWave(tutorial, 'id')
+tutorial = engine.completeTutorialStep(tutorial)
+assert.equal(tutorial.tutorialCompleted, true)
+assert.equal(tutorial.screen, 'home')
+
+let dead = engine.start(createRankedState('TD-DEATH'), '死亡测试')
+for (const [index, wave] of rankedWaves.entries()) {
+  const worst = wave.options.reduce((best, option) => option.loadDelta.reduce((sum, value) => sum + value, 0) > best.loadDelta.reduce((sum, value) => sum + value, 0) ? option : best)
+  dead = engine.submitRankedWave(dead, worst.id, 1000)
+  if (dead.phase === 'ranked-dead') break
+  if (index < rankedWaves.length - 1) dead = engine.advanceRankedWave(dead)
+}
+assert.equal(dead.phase, 'ranked-dead')
+assert.ok(dead.dnLoads.some((load) => load >= 100))
+assert.match(dead.deathReason, /负载已满/)
+assert.equal(engine.advanceRankedWave(dead), dead)
 
 console.log('Ranked: 14 waves, Final Rush, Combo, prediction cap, undo penalty, inherited state, and timeout fallback verified.')

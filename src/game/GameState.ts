@@ -5,6 +5,7 @@ export type GamePhase =
   | 'tutorial'
   | 'ranked'
   | 'ranked-result'
+  | 'ranked-dead'
   | 'sharding'
   | 'sharding-result'
   | 'query'
@@ -128,6 +129,8 @@ export interface GameState {
   waveStartedAt: number
   tutorialStep: number
   tutorialCompleted: boolean
+  tutorialWaveCompleted: boolean
+  tutorialStrategy?: RankedStrategy
   waveResults: WaveResult[]
   totalScore: number
   combo: number
@@ -149,6 +152,7 @@ export interface GameState {
   lastDecisionStrategy?: RankedStrategy
   lastDecisionSnapshot?: RankedSnapshot
   worstWave?: { wave: number; lostPoints: number; reason: string }
+  deathReason?: string
 }
 
 const baseState = (): GameState => ({
@@ -174,6 +178,7 @@ const baseState = (): GameState => ({
   waveStartedAt: Date.now(),
   tutorialStep: 0,
   tutorialCompleted: false,
+  tutorialWaveCompleted: false,
   waveResults: [],
   totalScore: 0,
   combo: 0,
@@ -204,7 +209,10 @@ export const createTutorialState = (): GameState => {
     phase: 'tutorial',
     tutorialStep: 0,
     tutorialCompleted: false,
-    npcMessage: '教学频道已连接。先认识 CN：所有数据都会先抵达中央调度中心。',
+    tutorialWaveCompleted: false,
+    tutorialStrategy: undefined,
+    deathReason: undefined,
+    npcMessage: '首席调度官，欢迎来到 TenDispatch！我是科成-开放原子开源社团联络员，接下来带你完成第一波教学关。',
   }
 }
 
@@ -222,6 +230,7 @@ export const createRankedState = (dailySeed: string): GameState => {
     gameStartedAt: now,
     dnLoads: [22, 24, 20],
     cargoMode: 'idle',
+    deathReason: undefined,
     npcMessage: 'RANKED 线路已开启。Daily Seed 锁定，14 波状态将连续继承。',
   }
 }

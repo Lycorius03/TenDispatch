@@ -3,7 +3,7 @@ import React from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { GamePage } from '../src/pages/Game/GamePage.tsx'
 import { HomePage } from '../src/pages/Home/HomePage.tsx'
-import { createInitialState } from '../src/game/GameState.ts'
+import { createInitialState, createRankedState, createTutorialState } from '../src/game/GameState.ts'
 globalThis.innerWidth=1920
 globalThis.innerHeight=1080
 globalThis.matchMedia=()=>({matches:false})
@@ -31,6 +31,18 @@ assert.ok(!home.includes('死亡'))
 assert.ok(!home.includes('自定义'))
 assert.ok(home.includes('教程不计分'))
 assert.ok(home.includes('随机呼号'))
+const tutorial=renderToStaticMarkup(React.createElement(GamePage,{...props,state:createTutorialState()}))
+assert.ok(tutorial.includes('欢迎来到 TenDispatch'))
+assert.ok(tutorial.includes('开始基本介绍'))
+assert.ok(tutorial.includes('教学关'))
+const tutorialWave=renderToStaticMarkup(React.createElement(GamePage,{...props,state:{...createTutorialState(),screen:'game',tutorialStep:3}}))
+assert.ok(tutorialWave.includes('WAVE 01 / 14'))
+assert.ok(tutorialWave.includes('用户活动记录进入'))
+assert.ok(tutorialWave.includes('极速模式死亡条件'))
+const dead=renderToStaticMarkup(React.createElement(GamePage,{...props,state:{...createRankedState('TD-SSR-DEATH'),screen:'game',phase:'ranked-dead',waveIndex:7,dnLoads:[100,88,86],deathReason:'DN-01 负载已满（100%）。极速模式规则：任一节点达到 100% 立即结束本局。'}}))
+assert.ok(dead.includes('节点负载已满，调度中止'))
+assert.ok(dead.includes('DEAD AT WAVE'))
+assert.ok(dead.includes('返回模式选择'))
 console.log('SSR: 12 phases render; each has <=4 primary controls, 3 DN; both desktop scale factors verified; nickname required.')
 const sharding=renderToStaticMarkup(React.createElement(GamePage,{...props,state:{...initial,phase:'sharding',screen:'game'}}))
 assert.ok(sharding.includes('记录按编号分到三个仓库'))

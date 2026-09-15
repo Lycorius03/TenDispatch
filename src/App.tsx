@@ -119,6 +119,8 @@ export default function App() {
     onTutorial={() => updateState((current) => engine.completeTutorial(current))}
     onTutorialStep={() => updateState((current) => engine.completeTutorialStep(current))}
     onTutorialRestart={() => updateState((current) => engine.resetTutorial(current))}
+    onTutorialWave={(strategy: RankedStrategy) => updateState((current) => engine.selectTutorialWave(current, strategy))}
+    onTutorialWaveRetry={() => updateState((current) => engine.retryTutorialWave(current))}
     onSharding={(strategy: DispatchStrategy) => updateState((current) => engine.selectSharding(current, strategy))}
     onShardingContinue={() => updateState((current) => engine.continueFromSharding(current))}
     onQuery={() => updateState((current) => engine.runQuery(current))}
@@ -138,5 +140,6 @@ export default function App() {
     onRankedPrediction={() => updateState((current) => engine.useRankedPrediction(current))}
     onRankedUndo={() => updateState((current) => engine.undoRankedDecision(current))}
     onRankedFinish={showReport}
+    onRankedGameOver={restart}
   />
 }
