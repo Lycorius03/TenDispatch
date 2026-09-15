@@ -114,7 +114,7 @@ export class GameEngine {
         ...state,
         tutorialStep: 1,
         cargoMode: 'write',
-        npcMessage: '先看画面：上方入口来的货物会经过 CN，再送到下面三个 DN。你不用操作货物，只需要在下方选方案；选完点“确认”，然后看哪个 DN 变忙。',
+        npcMessage: '先看画面：上方入口来的货物会经过 CN，再送到下面三个 DN。操作重点在下方的方案卡；选完点“确认”，然后看哪个 DN 变忙。',
       }
     }
     if (state.tutorialStep === 1) {
@@ -122,7 +122,7 @@ export class GameEngine {
         ...state,
         tutorialStep: 2,
         cargoMode: 'write',
-        npcMessage: '每个方案都是一种放数据的方法。先看任务卡里的“主要访问”，再看选项下面三行信息；暂时不用背术语，只要比较谁更容易堵、谁要问更多仓库。',
+        npcMessage: '每个方案都是一种放数据的方法。先看任务卡里的“主要访问”，再看选项下面三行信息，比较谁更容易堵、谁要问更多仓库。',
       }
     }
     if (state.tutorialStep === 2) {
@@ -131,7 +131,7 @@ export class GameEngine {
         tutorialStep: 3,
         queryNodes: 1,
         cargoMode: 'query',
-        npcMessage: '任务卡上的“主要访问”和“分布”不是背景说明，而是这一波的判断线索：先猜它最怕绕路、拥堵还是浪费资源，再用三个方案下面的数字验证。',
+        npcMessage: '任务卡上的“主要访问”和“分布”就是这一波的判断线索：先猜它最怕绕路、拥堵还是浪费资源，再用三个方案下面的数字验证。',
       }
     }
     if (state.tutorialStep === 3) {
