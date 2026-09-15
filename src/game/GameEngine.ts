@@ -1,6 +1,6 @@
 import { npcMessages } from '../config/npcMessages'
 import { shardingScenarios } from '../config/gameConfig'
-import { getRankedWave, getRankedWaveSet, rankedDecisionWindowMs, rankedWaveCount, tutorialWave, type RankedOption, type RankedWave } from '../config/rankedWaves'
+import { getRankedWave, getRankedWaveSet, rankedDecisionWindowMs, rankedWaveCount, tutorialWaves, type RankedOption, type RankedWave } from '../config/rankedWaves'
 import type { DispatchStrategy, FinalChoices, GamePhase, GameState, RankedSnapshot, RankedStrategy, ReplicationStrategy, StageTimes, WaveGrade, WaveResult, WaveScore } from './GameState'
 import { EventTracker } from './EventTracker'
 import { finalDispatchScenario } from '../scenarios/finalDispatch'
@@ -87,10 +87,12 @@ export class GameEngine {
         tutorialStep: 0,
         tutorialCompleted: false,
         tutorialWaveCompleted: false,
+        tutorialWaveIndex: 0,
+        tutorialWaveStartLoads: [22, 24, 20],
         tutorialStrategy: undefined,
         cargoMode: 'idle',
         deathReason: undefined,
-        npcMessage: '首席调度官，欢迎来到 TenDispatch！我是科成-开放原子开源社团联络员，接下来带你完成第一波教学关。',
+        npcMessage: '欢迎来到 OpenTenBase 数据物流中心。我是科成-开放原子开源社团联络员；你将担任首席调度官，决定数据如何进入三个 DN，并在查询效率、节点负载和资源成本之间做取舍。',
       }
     }
     return {
@@ -112,7 +114,7 @@ export class GameEngine {
         ...state,
         tutorialStep: 1,
         cargoMode: 'write',
-        npcMessage: '欢迎进入教学关。CN 负责接收和调度，三个 DN 负责保存与处理；先看懂这条数据链路。',
+        npcMessage: '先认识工作台：业务数据从上方入口进入 CN。CN 像总调度台，判断数据应该送往哪里；下方三个 DN 是实际保存和查询数据的仓库。你的每次选择都会改变它们的状态。',
       }
     }
     if (state.tutorialStep === 1) {
@@ -120,7 +122,7 @@ export class GameEngine {
         ...state,
         tutorialStep: 2,
         cargoMode: 'write',
-        npcMessage: 'Shard 决定数据怎样分到多个 DN；Replication 是复制副本。小型高频公共数据可以复制，大型业务数据要谨慎。',
+        npcMessage: 'Shard（分片）是决定“每条数据主要放在哪个 DN”；Replication（复制）是决定“要不要在多个 DN 保存副本”。分片帮助分摊压力，复制可能缩短查询，但会增加存储与同步成本。',
       }
     }
     if (state.tutorialStep === 2) {
@@ -129,7 +131,7 @@ export class GameEngine {
         tutorialStep: 3,
         queryNodes: 1,
         cargoMode: 'query',
-        npcMessage: '查询路径也会影响效率：如果分布键和查询条件一致，通常只需要触达一个 DN；否则就要广播到多个节点。先看懂“放在哪里”和“怎么查”的关系。',
+        npcMessage: '查询条件决定要问几个 DN。如果数据按用户编号分片，按用户编号查询通常只问一个 DN；如果按地区存、却按用户查，就可能询问多个 DN。路径越长，搬运和等待通常越多。',
       }
     }
     if (state.tutorialStep === 3) {
@@ -138,7 +140,7 @@ export class GameEngine {
         tutorialStep: 4,
         queryNodes: 1,
         cargoMode: 'query',
-        npcMessage: '开始决策前，先读懂选项下方的数据：查询 DN 越少路径越直接；搬运和成本越低，资源越充足。规模不是唯一难度，还要看热点、查询条件和当前节点余量。',
+        npcMessage: '每个方案下方有三项条件：查询 DN 数量影响查询项 30 分；跨节点搬运和策略成本共同影响资源项 20 分。还要结合 DN 负载 40 分与决策速度 10 分。教学关不限时，你可以慢慢比较。',
       }
     }
     if (state.tutorialStep === 4) {
@@ -146,23 +148,52 @@ export class GameEngine {
         ...state,
         tutorialStep: 5,
         dnLoads: [22, 24, 20],
+        tutorialWaveIndex: 0,
+        tutorialWaveStartLoads: [22, 24, 20],
+        tutorialWaveCompleted: false,
+        tutorialStrategy: undefined,
         queryNodes: 0,
         cargoMode: 'idle',
-        npcMessage: '教学关已载入 RANKED WAVE 01 / 14：用户活动记录进入。请选择一种分片策略，观察三个 DN 的结果。',
+        npcMessage: '训练 1：先读数据的分布特征和主要查询方式，再比较三种分片方案。不要猜术语，问自己“会不会集中到一个节点”和“查询能否直达”。',
       }
     }
     if (state.tutorialStep === 6 && state.tutorialWaveCompleted) {
       return {
         ...state,
         tutorialStep: 7,
-        npcMessage: '你已经看过一次完整的“策略 → 负载 → 查询”反馈。正式模式中，每波只有 4 秒；超时未确认的波次直接记 0 分。',
+        tutorialWaveIndex: 1,
+        tutorialWaveStartLoads: cloneLoads(state.dnLoads),
+        tutorialWaveCompleted: false,
+        tutorialStrategy: undefined,
+        cargoMode: 'idle',
+        npcMessage: '训练 2：现在是所有业务都会频繁读取的小型公共目录。比较“只存一份”和“复制三份”，看看节省存储与减少跨节点访问之间的交换。',
       }
     }
-    if (state.tutorialStep === 7 && state.tutorialWaveCompleted) {
+    if (state.tutorialStep === 8 && state.tutorialWaveCompleted) {
+      return {
+        ...state,
+        tutorialStep: 9,
+        tutorialWaveIndex: 2,
+        tutorialWaveStartLoads: cloneLoads(state.dnLoads),
+        tutorialWaveCompleted: false,
+        tutorialStrategy: undefined,
+        cargoMode: 'idle',
+        npcMessage: '训练 3：最后处理持续增长的海量业务日志。这次不能只看查询 DN 数量，还要把数据规模、写入增长、复制成本和当前节点余量一起考虑。',
+      }
+    }
+    if (state.tutorialStep === 10 && state.tutorialWaveCompleted) {
+      return {
+        ...state,
+        tutorialStep: 11,
+        cargoMode: 'idle',
+        npcMessage: '三次训练完成。Ranked 会连续处理 14 波，状态不会在波次间重置；预测能看趋势但限制评级，撤回会扣分并清空 Combo。每波 4 秒，未确认直接记 0 分。',
+      }
+    }
+    if (state.tutorialStep === 11) {
       this.tracker.track({ type: 'tutorial_completed', stage: 'tutorial', duration: elapsedSeconds(state.gameStartedAt) })
       return {
         ...state,
-        tutorialStep: 7,
+        tutorialStep: 11,
         tutorialCompleted: true,
         screen: 'home',
         phase: 'complete',
@@ -180,6 +211,8 @@ export class GameEngine {
       tutorialStep: 0,
       tutorialCompleted: false,
       tutorialWaveCompleted: false,
+      tutorialWaveIndex: 0,
+      tutorialWaveStartLoads: [22, 24, 20],
       tutorialStrategy: undefined,
       screen: 'game',
       phase: 'tutorial',
@@ -188,43 +221,45 @@ export class GameEngine {
       gameStartedAt: now,
       stageStartedAt: now,
       waveStartedAt: now,
-      npcMessage: '教学重新开始。欢迎回来，先听联络员介绍这座数据调度中心。',
+      npcMessage: '教学重新开始。先听联络员介绍任务背景，再用三次训练把完整决策方法练一遍。',
     }
   }
 
   selectTutorialWave(state: GameState, strategy: RankedStrategy): GameState {
-    if (state.mode !== 'tutorial' || state.phase !== 'tutorial' || state.tutorialStep !== 5) return state
-    const wave = tutorialWave
+    const decisionSteps = [5, 7, 9]
+    if (state.mode !== 'tutorial' || state.phase !== 'tutorial' || !decisionSteps.includes(state.tutorialStep)) return state
+    const wave = tutorialWaves[state.tutorialWaveIndex] ?? tutorialWaves[0]
     const selected = wave.options.find((option) => option.id === strategy) ?? wave.options[0]
     const loads = this.projectRankedLoads(state, wave, selected)
     const peak = Math.max(...loads)
     const systemStatus = peak >= 95 ? 'OVERLOAD' : peak >= 80 ? 'HIGH LOAD' : 'STABLE'
-    this.tracker.track({ type: 'tutorial_wave_completed', stage: 'tutorial-wave-1', value: selected.id, result: loads.join('/') })
+    this.tracker.track({ type: 'tutorial_wave_completed', stage: `tutorial-wave-${state.tutorialWaveIndex + 1}`, value: selected.id, result: loads.join('/') })
     return {
       ...state,
-      tutorialStep: 6,
+      tutorialStep: state.tutorialStep + 1,
       tutorialWaveCompleted: true,
       tutorialStrategy: selected.id,
       dnLoads: loads,
       queryNodes: selected.queryNodes,
       systemStatus,
       cargoMode: selected.queryNodes > 1 ? 'query' : 'write',
-      npcMessage: `${selected.note} 本教学关只演示一波，不计分，也不会因为选错而中断。`,
+      npcMessage: `${selected.note} 教学关不限时、不计分，也不会因为选错而中断；你可以重试并比较另一种结果。`,
     }
   }
 
   retryTutorialWave(state: GameState): GameState {
-    if (state.mode !== 'tutorial' || state.phase !== 'tutorial' || state.tutorialStep !== 6) return state
+    const resultSteps = [6, 8, 10]
+    if (state.mode !== 'tutorial' || state.phase !== 'tutorial' || !resultSteps.includes(state.tutorialStep)) return state
     return {
       ...state,
-      tutorialStep: 5,
+      tutorialStep: state.tutorialStep - 1,
       tutorialWaveCompleted: false,
       tutorialStrategy: undefined,
-      dnLoads: [22, 24, 20],
+      dnLoads: cloneLoads(state.tutorialWaveStartLoads),
       queryNodes: 0,
       systemStatus: 'STABLE',
       cargoMode: 'idle',
-      npcMessage: '再试一次教学关。先看三个策略的分布方式，再确认你的选择。',
+      npcMessage: `重新尝试训练 ${state.tutorialWaveIndex + 1}。这次可以换一个方案，比较查询路径、搬运、成本和负载结果。`,
     }
   }
 

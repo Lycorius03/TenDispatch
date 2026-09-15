@@ -1,5 +1,5 @@
 import { useEffect, useState, type CSSProperties } from 'react'
-import { getRankedWave, rankedDecisionWindowMs, rankedWaveArrivalSeconds, tutorialWave as tutorialRankedWave } from '../../config/rankedWaves'
+import { getRankedWave, rankedDecisionWindowMs, rankedWaveArrivalSeconds, tutorialWaves } from '../../config/rankedWaves'
 import type { DispatchStrategy, FinalChoices, GameState, RankedStrategy, ReplicationStrategy } from '../../game/GameState'
 import { LogisticsCenter } from '../../components/LogisticsCenter/LogisticsCenter'
 import { NPCChannel } from '../../components/NPCChannel/NPCChannel'
@@ -23,6 +23,7 @@ interface GamePageProps {
   onHint: () => void
   onTutorialStep?: () => void
   onTutorialRestart?: () => void
+  onTutorialExit?: () => void
   onTutorialWave?: (strategy: RankedStrategy) => void
   onTutorialWaveRetry?: () => void
   onRankedSubmit?: (strategy: RankedStrategy, decisionMs?: number) => void
@@ -64,13 +65,23 @@ export function GamePage(props: GamePageProps) {
 }
 
 const tutorialSteps = [
-  { kicker: '01 / CN + DN', title: '先看懂数据怎么进场', body: 'CN 是中央调度中心，所有数据先到这里；三个 DN 是真正保存和处理数据的节点。', note: '先观察中央 CN 和下方三个 DN，理解“接收 → 调度 → 保存”的基本链路。' },
-  { kicker: '02 / SHARD + REPLICATION', title: '分片与复制，各自解决什么问题', body: 'Shard 决定数据如何分散到多个 DN；Replication 为数据增加副本。小型高频公共数据可以复制，大型业务数据要谨慎。', note: '教学关会把这些概念放进一次真实的波次选择里。' },
-  { kicker: '03 / QUERY ROUTING', title: '查询条件决定要问几个 DN', body: '如果分布键和查询条件一致，查询通常可以直达一个 DN；条件不匹配时，就要广播到多个节点。', note: '查询触达节点数越少，等待和跨节点搬运通常越低。' },
-  { kicker: '04 / DECISION DATA', title: '先学会读决策数据', body: '每个选项的“查询 1 DN、搬运 10%、成本 9”不是答案，而是这条策略会带来的条件：问得越少越快，搬得越多越费协作，成本越高越占资源。', note: '先看数据量、分布热点、主要查询条件和当前 DN 余量；规模只是其中一个因素。' },
-  { kicker: '05 / TUTORIAL WAVE', title: 'WAVE 01 · 用户活动记录进入', body: '现在进入一波缩小版极速调度：用刚才的三个指标选择分片策略，观察三个 DN 的负载和查询触达。', note: '本关沿用 RANKED 的第 1 波，但不计分、不上榜，可以无限重试。' },
-  { kicker: '06 / WAVE RESULT', title: '读懂一次调度结果', body: '看哪个 DN 变忙、查询要触达几个节点，再回想 Shard 为什么会影响后续路线。', note: '教学关允许试错；极速模式才会在任一 DN 达到 100% 时结束本局。' },
-  { kicker: '07 / RANKED READY', title: '准备好用状态继承冲榜', body: '正式模式固定 90 秒、14 波，同一 Daily Seed 会给所有玩家相同的波次库抽取结果。每波只有 4 秒；没确认策略，该波直接记 0 分。', note: 'Combo、预测、撤回和 Final Rush 都会在 Ranked 中生效；下一页即可开始挑战。' },
+  { kicker: '01 / YOUR MISSION', title: '你要做的不是背术语，而是做取舍', body: '你是数据物流中心的首席调度官。每批数据都有不同规模、分布和访问方式；你的任务是选择放法，让三个节点不过度拥挤、查询路线不过长、资源消耗不过高。', note: '教学不限时、不计分、不失败。先理解，再操作。' },
+  { kicker: '02 / CN + DN', title: '数据从哪里来，又要到哪里去', body: '数据先进入 CN，由 CN 执行调度；DN-01、DN-02、DN-03 才是真正保存和处理数据的节点。上方是入口，中间是调度，下方是存储。', note: '后面看到 DN 负载时，它表示每个节点还承受得住多少工作。' },
+  { kicker: '03 / SHARD + QUERY', title: '放在哪里，会决定以后怎么查', body: 'Shard 是按某个字段把数据分开保存。查询条件和分片字段一致时，通常能直达一个 DN；不一致时，可能要同时询问多个 DN。Replication 则是额外保存副本。', note: '记住一个判断顺序：先看数据怎么分布，再看以后主要按什么条件查询。' },
+  { kicker: '04 / SCORE MAP', title: '看懂四项评分和三行参数', body: '负载均衡占 40 分，查询效率占 30 分，资源成本占 20 分，决策速度占 10 分。“查询 1 DN”是查询触达数，“搬运 10%”是跨节点协作比例，“成本 9”是该策略的资源代价。', note: '规模只是线索之一；热点分布、查询条件、节点余量和复制状态同样会改变难度。' },
+  { kicker: '05 / TRAINING 1', title: '训练 1 · 分片键与查询条件', body: '用用户活动记录练习：找出数据是否会集中，以及主要查询条件能否直接定位节点。', note: '先读情境，再比较参数；教学不会替你标出正确按钮。' },
+  { kicker: '06 / REVIEW 1', title: '复盘 1 · 从选择看到后果', body: '把选择、查询路径和三个 DN 的新负载连起来看。结果不是只看一个数字，而是看这套策略是否同时照顾了写入和查询。', note: '你可以重试这一波，观察另一种选择会发生什么。' },
+  { kicker: '07 / TRAINING 2', title: '训练 2 · 小型公共数据要不要复制', body: '用公共院系目录练习：复制会多占资源，但可能减少每次查询的跨节点访问。', note: '比较“少存副本”和“少走远路”哪个更适合当前情境。' },
+  { kicker: '08 / REVIEW 2', title: '复盘 2 · 查询效率与资源不是一回事', body: '查询 DN 少，不代表资源一定最省；成本低，也不代表整体查询路径最好。决策要同时查看查询、搬运、成本和负载。', note: '继续前可以换一个方案再比较。' },
+  { kicker: '09 / TRAINING 3', title: '训练 3 · 大型持续写入的综合判断', body: '用海量业务日志练习：这次加入大规模、持续增长和当前节点余量，检验你是否会综合判断。', note: '不要只追求查询 1 DN；还要考虑复制整批大数据的代价。' },
+  { kicker: '10 / REVIEW 3', title: '复盘 3 · 建立自己的检查顺序', body: '先排除会造成明显热点或高资源压力的方案，再看查询条件是否匹配，最后结合当前 DN 余量做取舍。', note: '这套顺序比记住某个固定答案更重要。' },
+  { kicker: '11 / RANKED READY', title: '正式模式还会发生什么', body: 'Ranked 固定 90 秒、14 波，负载、查询压力、资源和副本状态会继承。预测可查看趋势但本波评级封顶 GOOD；撤回扣 50 分并清空 Combo；每波 4 秒，未确认直接记 0 分。', note: '准备好后返回首页，再由你决定什么时候开始正式挑战。' },
+]
+
+const tutorialTrainingGoals = [
+  { label: '分片与查询', question: '数据编号均匀，但地区集中；主要按用户查询。哪种放法能减少热点，同时让查询少问节点？' },
+  { label: '复制与成本', question: '数据很小，三个业务都会频繁读取。多保存副本的成本，是否值得换取更短的查询路径？' },
+  { label: '规模与余量', question: '数据量大且持续写入。当前负载已经继承，哪种方案不会因为复制整批数据而快速消耗资源？' },
 ]
 
 const previewRankedLoads = (state: Pick<GameState, 'dnLoads' | 'replicationState' | 'queryPressure'>, wave: RankedWave, option: RankedOption) => state.dnLoads.map((load, index) => Math.min(100, Math.round(load * .82 + option.loadDelta[index] + (wave.finalRush ? 5 : 0) + (state.replicationState.largeCopies > 1 ? 2 : 0) + Math.round(state.queryPressure * .04)))) as [number, number, number]
@@ -100,7 +111,7 @@ function ModernConsole(p: GamePageProps & { displayLoads: GameState['dnLoads'] }
     if (ranked && result && s.waveIndex < 13 && nextWaveAt > 0 && now >= nextWaveAt) p.onRankedNext?.()
   }, [now, nextWaveAt, ranked, result, s.waveIndex, p.onRankedNext])
   const wave = ranked ? getRankedWave(s.waveIndex, s.dailySeed) : undefined
-  const tutorialWave = tutorialRankedWave
+  const tutorialWave = tutorialWaves[s.tutorialWaveIndex] ?? tutorialWaves[0]
   const latest = s.waveResults[s.waveResults.length - 1]
   const seconds = Math.min(90, Math.floor((now - s.gameStartedAt) / 1000))
   const remaining = Math.max(0, 90 - seconds)
@@ -111,18 +122,16 @@ function ModernConsole(p: GamePageProps & { displayLoads: GameState['dnLoads'] }
     loads: previewRankedLoads(s, wave, option),
     fatal: Math.max(...previewRankedLoads(s, wave, option)) >= 100,
   })) ?? []
-  const tutorialProjected = tutorialWave.options.map((option) => ({
-    ...option,
-    loads: previewRankedLoads(s, tutorialWave, option),
-    fatal: Math.max(...previewRankedLoads(s, tutorialWave, option)) >= 100,
-  }))
+  const tutorialProjected = tutorialWave.options.map((option) => ({ ...option, loads: previewRankedLoads(s, tutorialWave, option) }))
   const statusLabel = s.systemStatus === 'OVERLOAD' ? '过载' : s.systemStatus === 'HIGH LOAD' ? '较高' : '稳定'
-  const tutorialResult = s.mode === 'tutorial' && s.tutorialStep === 6 && s.tutorialWaveCompleted
+  const tutorialChoosing = s.mode === 'tutorial' && [5, 7, 9].includes(s.tutorialStep)
+  const tutorialResult = s.mode === 'tutorial' && [6, 8, 10].includes(s.tutorialStep) && s.tutorialWaveCompleted
+  const tutorialSelected = tutorialWave.options.find((option) => option.id === s.tutorialStrategy)
   const tutorialGreeting = s.mode === 'tutorial' && s.tutorialStep === 0
   return <main className="dispatch-console modern-console">
     <header className="dispatch-header">
       <div><h1>OpenTenBase <span>数据调度中心</span></h1><small>TenDispatch / {ranked ? 'RANKED 极速调度' : '新手教学'}</small></div>
-      {ranked ? <div className={`ranked-header-readout ${dead ? 'is-dead' : ''}`}><b>{dead ? 'DEAD · ' : ''}WAVE {String(s.waveIndex + 1).padStart(2, '0')} / 14</b><i style={{ '--progress': (s.waveIndex + (result ? 1 : 0)) / 14 } as CSSProperties} /><span>{dead ? 'NODE CAPACITY REACHED · RUN ENDED' : `DAILY SEED ${s.dailySeed}`}</span></div> : <div className="tutorial-header-readout"><b>{tutorialGreeting ? '欢迎' : `教学 ${Math.min(7, Math.max(1, s.tutorialStep))} / 7`}</b><span>教学关 · 不计分 · 可无限重试</span></div>}
+      {ranked ? <div className={`ranked-header-readout ${dead ? 'is-dead' : ''}`}><b>{dead ? 'DEAD · ' : ''}WAVE {String(s.waveIndex + 1).padStart(2, '0')} / 14</b><i style={{ '--progress': (s.waveIndex + (result ? 1 : 0)) / 14 } as CSSProperties} /><span>{dead ? 'NODE CAPACITY REACHED · RUN ENDED' : `DAILY SEED ${s.dailySeed}`}</span></div> : <div className="tutorial-header-readout"><b>{tutorialGreeting ? '欢迎' : `教学 ${Math.min(11, Math.max(1, s.tutorialStep))} / 11`}</b><span>3 波训练 · 不限时 · 不计分 · 可重试</span></div>}
       <div className="session-details"><b>{s.nickname}</b>{ranked ? <span>{dead ? `本局已结束 · 总分 ${s.totalScore}` : `剩余 ${remaining}s · 总分 ${s.totalScore} · Combo ×${s.combo ? (s.waveResults.at(-1)?.multiplier ?? 1).toFixed(2) : '1.00'}`}</span> : <span>CN / DN / Shard / Replication · 训练一波</span>}</div>
     </header>
     <section className="modern-status-bar" aria-label="实时调度指标">
@@ -134,13 +143,13 @@ function ModernConsole(p: GamePageProps & { displayLoads: GameState['dnLoads'] }
     <LogisticsCenter replicaDataset={s.replicationState.lastDataset === 'business' ? 'logs' : 'public'} state={{ ...s, dnLoads: p.displayLoads, cargoMode: effectiveMode, queryNodes: latest?.queryNodes ?? s.queryNodes, systemStatus: s.systemStatus }} />
     <div className="scene-legend"><span>■ 写入</span><span>● 查询</span><span>■ 复制</span><small>{ranked ? `状态继承中 · ${statusLabel}` : '教学模拟 · 不计分'}</small><button onClick={() => setPaused(!paused)}>{paused ? '继续场景动效' : '暂停场景动效'}</button></div>
     {s.mode === 'tutorial' ? <section className="modern-controls tutorial-controls">
-      {tutorialGreeting && <TutorialWelcome message={s.npcMessage} onStart={() => p.onTutorialStep?.()} />}
-      {s.tutorialStep === 5 ? <>
-        <div className="modern-mission-copy"><span>05 / TUTORIAL LEVEL · WAVE 01 / 14</span><h2>{tutorialWave.title}</h2><p><b>{tutorialWave.dataName}</b> · 规模 {Array.from({ length: 5 }, (_, index) => index < tutorialWave.size ? '★' : '☆').join('')}<br />分布：{tutorialWave.distribution}<br />高频访问：{tutorialWave.access}</p><small>先看“查询、搬运、成本”，再让写入和查询都保持可控。</small></div>
-        <div className="ranked-decision-desk tutorial-wave-desk"><div className="tutorial-wave-rule"><b>训练目标</b><span>查询 DN 越少越快；搬运和成本越低，资源越充足。本关只演示一波，不计分。</span></div><div className="ranked-options tutorial-wave-options">{tutorialProjected.map((option) => <button key={option.id} aria-pressed={selected === option.id} className={`${selected === option.id ? 'selected ' : ''}${option.fatal ? 'is-fatal' : ''}`} onClick={() => setSelected(option.id)}><strong>{option.label}</strong><small>{option.detail}</small><em className={option.fatal ? 'is-fatal' : ''}>负载 {option.loads.join(' / ')}% · 查询 {option.queryNodes} DN · 搬运 {option.crossNodeMovement}% · 成本 {option.resourceCost}{option.fatal ? ' · 达到 100% 即死亡' : ''}</em></button>)}</div><div className="modern-action-row"><button className="confirm-dispatch" disabled={!selected} onClick={() => p.onTutorialWave?.(selected as RankedStrategy)}>{selected ? '确认训练调度' : '选择一个策略'}</button></div><p className="tutorial-death-rule">极速模式死亡条件：任一 DN 负载达到 100%，立即结束本局。</p></div>
+      {tutorialGreeting && <TutorialWelcome message={s.npcMessage} onStart={() => p.onTutorialStep?.()} onExit={() => p.onTutorialExit?.()} />}
+      {tutorialChoosing ? <>
+        <div className="modern-mission-copy"><span>TRAINING WAVE {s.tutorialWaveIndex + 1} / 3 · {tutorialTrainingGoals[s.tutorialWaveIndex].label}</span><h2>{tutorialWave.title}</h2><p><b>{tutorialWave.dataName}</b> · 规模 {Array.from({ length: 5 }, (_, index) => index < tutorialWave.size ? '★' : '☆').join('')}<br />分布：{tutorialWave.distribution}<br />主要访问：{tutorialWave.access}{tutorialWave.publicData ? ' · 公共数据' : ''}</p><small>当前负载：{s.dnLoads.map((load, index) => `DN-${index + 1} ${load}%`).join(' · ')}</small></div>
+        <div className="ranked-decision-desk tutorial-wave-desk"><div className="tutorial-npc-coach"><NPCChannel message={s.npcMessage} /></div><div className="tutorial-wave-rule"><b>先问自己</b><span>{tutorialTrainingGoals[s.tutorialWaveIndex].question}</span></div><div className="ranked-options tutorial-wave-options">{tutorialProjected.map((option) => <button key={option.id} aria-pressed={selected === option.id} className={selected === option.id ? 'selected' : ''} onClick={() => setSelected(option.id)}><strong>{option.label}</strong><small>{option.detail}</small><em>查询 {option.queryNodes} DN · 搬运 {option.crossNodeMovement}% · 成本 {option.resourceCost}</em></button>)}</div><div className="tutorial-score-key"><span>查询：1 / 2 / 3 DN → 30 / 20 / 8 分</span><span>资源：成本和搬运越高，20 分中扣得越多</span><span>负载：看峰值和三个 DN 差距，共 40 分</span></div><div className="modern-action-row"><button className="secondary-action" onClick={() => p.onTutorialRestart?.()}>重新开始教学</button><button className="confirm-dispatch" disabled={!selected} onClick={() => p.onTutorialWave?.(selected as RankedStrategy)}>{selected ? '确认并查看结果' : '先选择一个策略'}</button></div><p className="operation-note">教学波不限时、不会失败；你可以放心比较后再确认。</p></div>
       </> : <>
         <div className="modern-mission-copy"><span>{tutorial.kicker}</span><h2>{tutorial.title}</h2><p>{tutorial.body}</p><small>{tutorial.note}</small></div>
-        <div className="tutorial-action-card"><div className="tutorial-progress">{tutorialSteps.map((step, index) => <i key={step.kicker} className={index < Math.max(0, s.tutorialStep - 1) || s.tutorialCompleted ? 'is-done' : ''} />)}</div>{tutorialResult && <div className="tutorial-wave-result"><b>训练波次结果</b><span>策略：{tutorialWave.options.find((option) => option.id === s.tutorialStrategy)?.label ?? '未记录'}</span><span>DN 负载：{s.dnLoads.map((load, index) => `DN-${index + 1} ${load}%`).join(' · ')}</span><small>看懂“分片策略 → 节点负载 → 查询触达”的关系后，再进入 14 波极速调度。</small></div>}<p>教学关不会计入排行榜，也不会因选错而失败。</p><div className="tutorial-action-row">{tutorialResult && <button className="secondary-action" onClick={() => p.onTutorialWaveRetry?.()}>再练一次</button>}<button className="confirm-dispatch" disabled={tutorialGreeting} onClick={() => p.onTutorialStep?.()}>{s.tutorialStep === 1 ? '进入分片与复制' : s.tutorialStep === 2 ? '进入查询路径' : s.tutorialStep === 3 ? '学习如何读决策数据' : s.tutorialStep === 4 ? '进入 WAVE 01 训练关' : s.tutorialStep === 6 ? '查看 Ranked 冲榜规则' : s.tutorialStep === 7 ? '完成教学，返回首页' : '开始基本介绍'}</button></div><p className="operation-note">完成教学关后返回首页，可直接进入 Ranked。</p></div>
+        <div className="tutorial-action-card"><div className="tutorial-progress">{tutorialSteps.map((step, index) => <i key={step.kicker} className={index < Math.max(0, s.tutorialStep - 1) || s.tutorialCompleted ? 'is-done' : ''} />)}</div><div className="tutorial-npc-coach"><NPCChannel message={s.npcMessage} /></div>{tutorialResult && <div className="tutorial-wave-result"><b>训练 {s.tutorialWaveIndex + 1} 结果 · {tutorialSelected?.label ?? '未记录'}</b><span>查询路径：触达 {tutorialSelected?.queryNodes ?? 0} 个 DN · 跨节点搬运 {tutorialSelected?.crossNodeMovement ?? 0}% · 策略成本 {tutorialSelected?.resourceCost ?? 0}</span><span>新负载：{s.dnLoads.map((load, index) => `DN-${index + 1} ${load}%`).join(' · ')}</span><small>{tutorialSelected?.note} 观察这项收益是否值得它带来的其它代价。</small></div>}<p>{tutorialResult ? '先读结果，再决定重试还是继续下一项训练。' : 'NPC 会先讲概念，再让你亲手完成三波训练；教学全程不限时、不计分。'}</p><div className="tutorial-action-row">{tutorialResult && <button className="secondary-action" onClick={() => p.onTutorialWaveRetry?.()}>换个方案再试</button>}<button className="secondary-action" onClick={() => p.onTutorialExit?.()}>暂时退出教学</button><button className="confirm-dispatch" disabled={tutorialGreeting} onClick={() => p.onTutorialStep?.()}>{s.tutorialStep === 1 ? '认识 CN 与三个 DN' : s.tutorialStep === 2 ? '理解分片与查询路径' : s.tutorialStep === 3 ? '学习评分与参数' : s.tutorialStep === 4 ? '开始训练 1' : s.tutorialStep === 6 ? '继续训练 2' : s.tutorialStep === 8 ? '继续训练 3' : s.tutorialStep === 10 ? '查看极速模式规则' : s.tutorialStep === 11 ? '完成教学，返回首页' : '继续'}</button></div><p className="operation-note">不确定时可以重试。教学只解释判断方法，不会直接标出标准答案。</p></div>
       </>}
     </section> : dead ? <section className="modern-controls ranked-controls ranked-death-controls">
       <div className="modern-mission-copy"><span>GAME OVER · NODE CAPACITY</span><h2>节点负载已满，调度中止</h2><p>{s.deathReason ?? '任一 DN 达到 100% 负载，极速模式立即结束本局。'}</p><small>本局不会再进入下一波；记住先看余量，再确认高压策略。</small></div><div className="ranked-death-card"><div className="ranked-death-readout"><span>DEAD AT WAVE</span><strong>{String(s.waveIndex + 1).padStart(2, '0')} / 14</strong></div><div className="ranked-death-loads">{s.dnLoads.map((load, index) => <span key={index} className={load >= 100 ? 'is-fatal' : ''}>DN-{index + 1} <b>{load}%</b></span>)}</div><button className="confirm-dispatch" onClick={() => p.onRankedGameOver?.()}>返回模式选择 →</button></div>
@@ -160,14 +169,15 @@ function ModernConsole(p: GamePageProps & { displayLoads: GameState['dnLoads'] }
   </main>
 }
 
-function TutorialWelcome({ message, onStart }: { message: string; onStart: () => void }) {
+function TutorialWelcome({ message, onStart, onExit }: { message: string; onStart: () => void; onExit: () => void }) {
   return <div className="tutorial-welcome-backdrop">
     <div className="tutorial-welcome" role="dialog" aria-modal="true" aria-labelledby="tutorial-welcome-title">
       <span className="tutorial-welcome-kicker">INCOMING MESSAGE / 教学频道已接入</span>
       <h2 id="tutorial-welcome-title">欢迎来到 TenDispatch</h2>
       <NPCChannel message={message} />
-      <p className="tutorial-welcome-note">接下来用 7 个短节点认识 CN、DN、Shard、Replication、查询路径和决策数据，再进入一波真实的极速调度训练。</p>
-      <button className="confirm-dispatch" onClick={onStart}>开始基本介绍 →</button>
+      <div className="tutorial-briefing-grid"><div><b>你是谁</b><span>数据物流中心的首席调度官</span></div><div><b>你要做什么</b><span>为每批数据选择合适的存放与查询策略</span></div><div><b>你要平衡什么</b><span>DN 负载、查询路径、跨节点搬运与资源成本</span></div><div><b>怎么学习</b><span>先听背景，再完成 3 波不限时训练，每波都可重试</span></div></div>
+      <p className="tutorial-welcome-note">正式模式会在 90 秒内连续到达 14 波数据，但教学不会计时、不会计分、不会中途失败。这里的目标是学会读信息和做取舍，不是背下某一个答案。</p>
+      <div className="tutorial-welcome-actions"><button className="secondary-action" onClick={onExit}>暂时退出</button><button className="confirm-dispatch" onClick={onStart}>听 NPC 从背景讲起 →</button></div>
     </div>
   </div>
 }

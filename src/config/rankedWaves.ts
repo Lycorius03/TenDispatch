@@ -499,10 +499,13 @@ export const getRankedWaveSet = (seed = defaultRankedSeed) => {
 
 export const rankedWaves = getRankedWaveSet(defaultRankedSeed)
 
-export const tutorialWave: RankedWave = {
-  ...(rankedWaveLibrary.find((wave) => wave.templateId === 'core-01') as RankedWave),
-  id: 1,
-}
+export const tutorialWaves: RankedWave[] = [1, 5, 6].map((sourceId, index) => ({
+  ...(rankedWaveLibrary.find((wave) => wave.templateId === `core-${String(sourceId).padStart(2, '0')}`) as RankedWave),
+  id: index + 1,
+}))
+
+// Kept for integrations that still expect the original single tutorial wave.
+export const tutorialWave = tutorialWaves[0]
 
 export const getRankedWave = (index: number, seed = defaultRankedSeed) => {
   const waves = getRankedWaveSet(seed)

@@ -130,6 +130,8 @@ export interface GameState {
   tutorialStep: number
   tutorialCompleted: boolean
   tutorialWaveCompleted: boolean
+  tutorialWaveIndex: number
+  tutorialWaveStartLoads: [number, number, number]
   tutorialStrategy?: RankedStrategy
   waveResults: WaveResult[]
   totalScore: number
@@ -179,6 +181,8 @@ const baseState = (): GameState => ({
   tutorialStep: 0,
   tutorialCompleted: false,
   tutorialWaveCompleted: false,
+  tutorialWaveIndex: 0,
+  tutorialWaveStartLoads: [22, 24, 20],
   waveResults: [],
   totalScore: 0,
   combo: 0,
@@ -210,9 +214,11 @@ export const createTutorialState = (): GameState => {
     tutorialStep: 0,
     tutorialCompleted: false,
     tutorialWaveCompleted: false,
+    tutorialWaveIndex: 0,
+    tutorialWaveStartLoads: [22, 24, 20],
     tutorialStrategy: undefined,
     deathReason: undefined,
-    npcMessage: '首席调度官，欢迎来到 TenDispatch！我是科成-开放原子开源社团联络员，接下来带你完成第一波教学关。',
+    npcMessage: '欢迎来到 OpenTenBase 数据物流中心。我是科成-开放原子开源社团联络员；你将担任首席调度官，学习怎样在节点负载、查询效率和资源成本之间做取舍。',
   }
 }
 

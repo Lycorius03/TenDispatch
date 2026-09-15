@@ -119,6 +119,7 @@ export default function App() {
     onTutorial={() => updateState((current) => engine.completeTutorial(current))}
     onTutorialStep={() => updateState((current) => engine.completeTutorialStep(current))}
     onTutorialRestart={() => updateState((current) => engine.resetTutorial(current))}
+    onTutorialExit={restart}
     onTutorialWave={(strategy: RankedStrategy) => updateState((current) => engine.selectTutorialWave(current, strategy))}
     onTutorialWaveRetry={() => updateState((current) => engine.retryTutorialWave(current))}
     onSharding={(strategy: DispatchStrategy) => updateState((current) => engine.selectSharding(current, strategy))}

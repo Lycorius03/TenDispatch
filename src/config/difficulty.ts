@@ -21,7 +21,7 @@ export const getDailySeed = (date = new Date()) => {
 export const sessionModes = {
   tutorial: {
     label: '新手教学',
-    description: '约 45～60 秒 · 7 个教学节点 · 允许无限重试 · 不计入排行榜',
+    description: '约 4～6 分钟 · 11 个教学节点 · 3 波不限时训练 · 可无限重试',
   },
   ranked: {
     label: 'Ranked 极速调度',

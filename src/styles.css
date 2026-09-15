@@ -562,14 +562,19 @@ button:disabled { cursor:not-allowed; opacity:.45; }
 .modern-mission-copy p { margin: 0; color: #b1c7da; font-size: 15px; line-height: 1.5; }
 .modern-mission-copy p b { color: #e7f7ff; }
 .modern-mission-copy small { display: block; margin-top: 12px; color: #77a0b1; font-size: 12px; line-height: 1.45; }
-.ranked-death-rule, .tutorial-death-rule { color: #ff9a47 !important; }
+.ranked-death-rule { color: #ff9a47 !important; }
 .tutorial-action-card, .ranked-decision-desk { min-width: 0; flex: 1; }
 .tutorial-action-card { padding: 12px 20px; background: rgba(13, 36, 55, .7); border: 1px solid #315572; }
 .tutorial-progress { display: flex; gap: 9px; margin-bottom: 16px; }
-.tutorial-progress i { width: 54px; height: 4px; background: #244158; }
+.tutorial-progress i { min-width: 10px; height: 4px; flex: 1; background: #244158; }
 .tutorial-progress i.is-done { background: var(--cyan); box-shadow: 0 0 8px rgba(50, 199, 244, .4); }
 .tutorial-action-card p { margin: 9px 0; color: #9db8c9; font-size: 13px; }
 .tutorial-action-card .confirm-dispatch { margin-top: 8px; width: 230px; }
+.tutorial-npc-coach .npc-channel { min-height: 76px; margin: 0 0 10px; grid-template-columns: 58px 1fr; background: #0b2233; border-color: #2c546c; }
+.tutorial-npc-coach .npc-avatar > img { width: 36px; height: 36px; }
+.tutorial-npc-coach .npc-content { padding: 9px 12px; }
+.tutorial-npc-coach .npc-content p { margin: 5px 0 2px; font-size: 11px; line-height: 1.45; }
+.tutorial-npc-coach .npc-content small { font-size: 8px; }
 .tutorial-action-row { display: flex; align-items: center; gap: 12px; }
 .tutorial-action-row .confirm-dispatch { margin-top: 8px; }
 .tutorial-action-row .secondary-action { min-height: 44px; padding: 0 16px; }
@@ -577,7 +582,7 @@ button:disabled { cursor:not-allowed; opacity:.45; }
 .tutorial-wave-result b { color: var(--cyan-bright); font: 600 14px/1 var(--display); }
 .tutorial-wave-result small { color: #7fa2b2; }
 .tutorial-welcome-backdrop { position: fixed; z-index: 30; inset: 0; display: grid; place-items: center; padding: 40px; background: rgba(3, 10, 18, .78); }
-.tutorial-welcome { width: min(720px, calc(100% - 80px)); padding: 30px 34px 34px; background: #0a1c2d; border: 1px solid #4e9bb6; box-shadow: 0 24px 90px rgba(0, 0, 0, .55), 0 0 45px rgba(50, 199, 244, .12); animation: npc-enter .24s ease-out; }
+.tutorial-welcome { width: min(860px, calc(100% - 80px)); max-height: calc(100vh - 48px); padding: 30px 34px 34px; overflow-y: auto; background: #0a1c2d; border: 1px solid #4e9bb6; box-shadow: 0 24px 90px rgba(0, 0, 0, .55), 0 0 45px rgba(50, 199, 244, .12); animation: npc-enter .24s ease-out; }
 .tutorial-welcome-kicker { color: var(--cyan); font: 600 11px/1 var(--display); letter-spacing: .14em; }
 .tutorial-welcome h2 { margin: 12px 0 0; color: #effcff; font: 600 36px/1 var(--display); }
 .tutorial-welcome .npc-channel { margin-top: 22px; border-color: #315d77; background: #0d2639; }
@@ -588,11 +593,19 @@ button:disabled { cursor:not-allowed; opacity:.45; }
 .tutorial-welcome .npc-content p { margin: 10px 0 6px; color: #d1eaf1; font-size: 15px; line-height: 1.65; }
 .tutorial-welcome-note { margin: 20px 0 18px; color: #9ab9c8; font-size: 13px; line-height: 1.6; }
 .tutorial-welcome .confirm-dispatch { width: 230px; height: 48px; }
+.tutorial-briefing-grid { margin-top: 18px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.tutorial-briefing-grid > div { min-height: 58px; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; background: #0d2639; border-left: 2px solid #3c8eaa; }
+.tutorial-briefing-grid b { color: var(--cyan-bright); font-size: 11px; }
+.tutorial-briefing-grid span { color: #b8cfda; font-size: 11px; line-height: 1.45; }
+.tutorial-welcome-actions { display: flex; justify-content: flex-end; gap: 10px; }
+.tutorial-welcome-actions .secondary-action { min-height: 48px; }
 .tutorial-wave-desk { display: flex; flex-direction: column; }
 .tutorial-wave-rule { display: flex; align-items: baseline; gap: 12px; margin-bottom: 10px; color: #9bb9c8; font-size: 12px; }
 .tutorial-wave-rule b { color: var(--gold); font: 600 14px/1 var(--display); }
 .tutorial-wave-options { flex: 1; }
 .tutorial-wave-options button em { line-height: 1.35; }
+.tutorial-score-key { margin-top: 9px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.tutorial-score-key span { padding: 7px 9px; color: #a9c6d4; background: rgba(10, 31, 46, .7); border: 1px solid #294d63; font-size: 10px; line-height: 1.4; }
 .ranked-decision-desk { position: relative; }
 .decision-clock { width: 330px; display: grid; grid-template-columns: 1fr auto; gap: 5px 16px; align-items: center; margin-bottom: 10px; }
 .decision-clock span { color: #86a7b9; font-size: 12px; }
@@ -712,6 +725,7 @@ button:disabled { cursor:not-allowed; opacity:.45; }
   .tutorial-welcome { width: calc(100% - 28px); padding: 22px 18px 24px; }
   .tutorial-welcome h2 { font-size: 30px; }
   .tutorial-wave-rule { align-items: flex-start; flex-direction: column; gap: 5px; }
+  .tutorial-score-key, .tutorial-briefing-grid { grid-template-columns: 1fr; }
   .tutorial-action-row { flex-wrap: wrap; }
   .ranked-death-card { grid-template-columns: 1fr; gap: 14px; }
   .ranked-death-card .confirm-dispatch { width: 100%; }
