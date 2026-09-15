@@ -131,7 +131,7 @@ export class GameEngine {
         tutorialStep: 3,
         queryNodes: 1,
         cargoMode: 'query',
-        npcMessage: '任务卡上的“主要访问”和“分布”就是这一波的判断线索：先猜它最怕绕路、拥堵还是浪费资源，再用三个方案下面的数字验证。',
+        npcMessage: '读任务卡分三步：先看“分布”，地区或状态集中时要警惕某个 DN 变忙；再看“主要访问”，按用户、订单或时间查时要比较查询会问几个 DN；最后看规模和增长，越大越要重视成本。',
       }
     }
     if (state.tutorialStep === 3) {
@@ -178,7 +178,7 @@ export class GameEngine {
         tutorialWaveCompleted: false,
         tutorialStrategy: undefined,
         cargoMode: 'idle',
-        npcMessage: '训练 3 开始。先看任务卡的分布和主要访问，判断本波最需要避开什么；再用查询、搬运、成本和 DN 余量检查你的判断。',
+        npcMessage: '训练 3 开始。先看分布是否集中，决定要多重视 DN 余量；再看主要访问是否明确，决定要多重视查询 DN；最后结合规模和增长，检查复制与搬运的成本。',
       }
     }
     if (state.tutorialStep === 10 && state.tutorialWaveCompleted) {

@@ -49,6 +49,8 @@ const tutorialWave3=renderToStaticMarkup(React.createElement(GamePage,{...props,
 assert.ok(tutorialWave3.includes('海量业务日志进入'))
 const tutorialRouting=renderToStaticMarkup(React.createElement(GamePage,{...props,state:{...createTutorialState(),screen:'game',tutorialStep:3}}))
 assert.ok(tutorialRouting.includes('放在哪里，会决定以后怎么查'))
+assert.ok(tutorialRouting.includes('分布看负载，主要访问看查询，规模和增长看成本'))
+assert.ok(!tutorialRouting.includes('先猜它最怕绕路'))
 const tutorialIntro=renderToStaticMarkup(React.createElement(GamePage,{...props,state:{...createTutorialState(),screen:'game',tutorialStep:1,cargoMode:'write'}}))
 assert.ok(tutorialIntro.includes('数据沿固定轨道进入协调节点'))
 assert.ok(tutorialIntro.includes('animateMotion'))
