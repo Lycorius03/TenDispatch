@@ -1,6 +1,6 @@
 import { npcMessages } from '../config/npcMessages'
 import { shardingScenarios } from '../config/gameConfig'
-import { getRankedWave, rankedDecisionWindowMs, rankedWaveCount, type RankedOption } from '../config/rankedWaves'
+import { getRankedWave, getRankedWaveSet, rankedDecisionWindowMs, rankedWaveCount, tutorialWave, type RankedOption, type RankedWave } from '../config/rankedWaves'
 import type { DispatchStrategy, FinalChoices, GamePhase, GameState, RankedSnapshot, RankedStrategy, ReplicationStrategy, StageTimes, WaveGrade, WaveResult, WaveScore } from './GameState'
 import { EventTracker } from './EventTracker'
 import { finalDispatchScenario } from '../scenarios/finalDispatch'
@@ -127,16 +127,42 @@ export class GameEngine {
       return {
         ...state,
         tutorialStep: 3,
+        queryNodes: 1,
+        cargoMode: 'query',
+        npcMessage: '查询路径也会影响效率：如果分布键和查询条件一致，通常只需要触达一个 DN；否则就要广播到多个节点。先看懂“放在哪里”和“怎么查”的关系。',
+      }
+    }
+    if (state.tutorialStep === 3) {
+      return {
+        ...state,
+        tutorialStep: 4,
+        queryNodes: 1,
+        cargoMode: 'query',
+        npcMessage: '开始决策前，先读懂选项下方的数据：查询 DN 越少路径越直接；搬运和成本越低，资源越充足。规模不是唯一难度，还要看热点、查询条件和当前节点余量。',
+      }
+    }
+    if (state.tutorialStep === 4) {
+      return {
+        ...state,
+        tutorialStep: 5,
         dnLoads: [22, 24, 20],
+        queryNodes: 0,
         cargoMode: 'idle',
         npcMessage: '教学关已载入 RANKED WAVE 01 / 14：用户活动记录进入。请选择一种分片策略，观察三个 DN 的结果。',
       }
     }
-    if (state.tutorialStep === 4 && state.tutorialWaveCompleted) {
+    if (state.tutorialStep === 6 && state.tutorialWaveCompleted) {
+      return {
+        ...state,
+        tutorialStep: 7,
+        npcMessage: '你已经看过一次完整的“策略 → 负载 → 查询”反馈。正式模式中，每波只有 4 秒；超时未确认的波次直接记 0 分。',
+      }
+    }
+    if (state.tutorialStep === 7 && state.tutorialWaveCompleted) {
       this.tracker.track({ type: 'tutorial_completed', stage: 'tutorial', duration: elapsedSeconds(state.gameStartedAt) })
       return {
         ...state,
-        tutorialStep: 5,
+        tutorialStep: 7,
         tutorialCompleted: true,
         screen: 'home',
         phase: 'complete',
@@ -167,16 +193,16 @@ export class GameEngine {
   }
 
   selectTutorialWave(state: GameState, strategy: RankedStrategy): GameState {
-    if (state.mode !== 'tutorial' || state.phase !== 'tutorial' || state.tutorialStep !== 3) return state
-    const wave = getRankedWave(0)
+    if (state.mode !== 'tutorial' || state.phase !== 'tutorial' || state.tutorialStep !== 5) return state
+    const wave = tutorialWave
     const selected = wave.options.find((option) => option.id === strategy) ?? wave.options[0]
-    const loads = this.projectRankedLoads(state, wave.id, selected)
+    const loads = this.projectRankedLoads(state, wave, selected)
     const peak = Math.max(...loads)
     const systemStatus = peak >= 95 ? 'OVERLOAD' : peak >= 80 ? 'HIGH LOAD' : 'STABLE'
     this.tracker.track({ type: 'tutorial_wave_completed', stage: 'tutorial-wave-1', value: selected.id, result: loads.join('/') })
     return {
       ...state,
-      tutorialStep: 4,
+      tutorialStep: 6,
       tutorialWaveCompleted: true,
       tutorialStrategy: selected.id,
       dnLoads: loads,
@@ -188,10 +214,10 @@ export class GameEngine {
   }
 
   retryTutorialWave(state: GameState): GameState {
-    if (state.mode !== 'tutorial' || state.phase !== 'tutorial' || state.tutorialStep !== 4) return state
+    if (state.mode !== 'tutorial' || state.phase !== 'tutorial' || state.tutorialStep !== 6) return state
     return {
       ...state,
-      tutorialStep: 3,
+      tutorialStep: 5,
       tutorialWaveCompleted: false,
       tutorialStrategy: undefined,
       dnLoads: [22, 24, 20],
@@ -204,9 +230,9 @@ export class GameEngine {
 
   getRankedPredictions(state: GameState) {
     if (state.mode !== 'ranked') return []
-    const wave = getRankedWave(state.waveIndex)
+    const wave = getRankedWave(state.waveIndex, state.dailySeed)
     return wave.options.map((option) => {
-      const loads = this.projectRankedLoads(state, wave.id, option)
+      const loads = this.projectRankedLoads(state, wave, option)
       return {
         id: option.id,
         label: option.label,
@@ -226,7 +252,7 @@ export class GameEngine {
 
   submitRankedWave(state: GameState, strategy: RankedStrategy, decisionMs = Date.now() - state.waveStartedAt): GameState {
     if (state.mode !== 'ranked' || state.phase !== 'ranked') return state
-    const wave = getRankedWave(state.waveIndex)
+    const wave = getRankedWave(state.waveIndex, state.dailySeed)
     const selected = wave.options.find((option) => option.id === strategy) ?? wave.options.find((option) => option.id === wave.defaultStrategy) ?? wave.options[0]
     const timedOut = decisionMs > rankedDecisionWindowMs || !wave.options.some((option) => option.id === strategy)
     const actualDecisionMs = timedOut ? rankedDecisionWindowMs + 1 : Math.max(0, decisionMs)
@@ -252,8 +278,12 @@ export class GameEngine {
       lastDecisionStrategy: state.lastDecisionStrategy,
       worstWave: state.worstWave,
     }
-    const loads = this.projectRankedLoads(state, wave.id, selected)
-    const score = calculateWaveScore(loads, selected, actualDecisionMs, state.predictionUsedThisWave)
+    const loads = this.projectRankedLoads(state, wave, selected)
+    // A missed decision still applies the safe default to keep the simulated
+    // system moving, but it is not a player decision and therefore earns no points.
+    const score = timedOut
+      ? { loadBalance: 0, queryEfficiency: 0, resourceCost: 0, decisionSpeed: 0, total: 0 }
+      : calculateWaveScore(loads, selected, actualDecisionMs, state.predictionUsedThisWave)
     const grade = gradeForWaveScore(score.total)
     const combo = grade === 'PERFECT' || grade === 'GOOD' ? state.combo + 1 : 0
     const multiplier = comboMultiplier(combo)
@@ -276,7 +306,7 @@ export class GameEngine {
       queryNodes: selected.queryNodes,
       crossNodeMovement,
       loads,
-      note: timedOut ? `决策超时，系统使用默认策略：${wave.options.find((option) => option.id === wave.defaultStrategy)?.label ?? selected.label}` : selected.note,
+      note: timedOut ? `本波未在 4 秒内确认策略，直接记 0 分；系统仅为保持线路运转而采用默认策略：${wave.options.find((option) => option.id === wave.defaultStrategy)?.label ?? selected.label}` : selected.note,
       predictionUsed: state.predictionUsedThisWave,
     }
     const nextPoor = state.poorCount + Number(grade === 'POOR')
@@ -361,7 +391,8 @@ export class GameEngine {
   }
 
   advanceRankedWave(state: GameState): GameState {
-    if (state.mode !== 'ranked' || state.phase !== 'ranked-result' || state.waveIndex >= rankedWaveCount - 1) return state
+    const waveCount = state.mode === 'ranked' ? getRankedWaveSet(state.dailySeed).length : rankedWaveCount
+    if (state.mode !== 'ranked' || state.phase !== 'ranked-result' || state.waveIndex >= waveCount - 1) return state
     const nextWave = state.waveIndex + 1
     this.tracker.track({ type: 'ranked_wave_started', stage: `wave-${nextWave + 1}`, value: state.dailySeed })
     return {
@@ -378,13 +409,13 @@ export class GameEngine {
   }
 
   finishRanked(state: GameState): GameState {
-    if (state.mode !== 'ranked' || state.phase !== 'ranked-result' || state.waveIndex !== rankedWaveCount - 1) return state
+    const waveCount = state.mode === 'ranked' ? getRankedWaveSet(state.dailySeed).length : rankedWaveCount
+    if (state.mode !== 'ranked' || state.phase !== 'ranked-result' || state.waveIndex !== waveCount - 1) return state
     this.tracker.track({ type: 'game_completed', stage: 'ranked-complete', duration: elapsedSeconds(state.gameStartedAt) })
     return { ...state, phase: 'complete', screen: 'result', cargoMode: 'final', npcMessage: '14 波调度完成。查看报告，找出下一局最容易提升的失分点。' }
   }
 
-  private projectRankedLoads(state: GameState, waveId: number, option: RankedOption): [number, number, number] {
-    const wave = getRankedWave(waveId - 1)
+  private projectRankedLoads(state: GameState, wave: RankedWave, option: RankedOption): [number, number, number] {
     const rushPressure = wave.finalRush ? 5 : 0
     const replicationPressure = state.replicationState.largeCopies > 1 ? 2 : 0
     const queryPressure = Math.round(state.queryPressure * 0.04)

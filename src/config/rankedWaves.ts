@@ -1,6 +1,7 @@
 import type { RankedStrategy } from '../game/GameState'
 
 export type LoadDelta = [number, number, number]
+export type WaveDifficulty = 'easy' | 'medium' | 'hard'
 
 export interface RankedOption {
   id: RankedStrategy
@@ -15,6 +16,8 @@ export interface RankedOption {
 
 export interface RankedWave {
   id: number
+  templateId?: string
+  difficulty?: WaveDifficulty
   title: string
   dataName: string
   size: 1 | 2 | 3 | 4 | 5
@@ -37,7 +40,7 @@ const makeOption = (
   note: string,
 ): RankedOption => ({ id, label, detail, loadDelta, queryNodes, crossNodeMovement, resourceCost, note })
 
-export const rankedWaves: RankedWave[] = [
+const rankedWaveTemplates: RankedWave[] = [
   {
     id: 1,
     title: '用户活动记录进入',
@@ -253,9 +256,255 @@ export const rankedWaves: RankedWave[] = [
   },
 ]
 
-export const rankedWaveCount = rankedWaves.length
+const coreEasyWaveIds = new Set([1, 2, 3, 4, 5, 7, 8, 11])
+
+const difficultyForCoreWave = (wave: RankedWave): WaveDifficulty => {
+  if (wave.finalRush) return 'hard'
+  return coreEasyWaveIds.has(wave.id) ? 'easy' : 'medium'
+}
+
+type WaveVariantPatch = {
+  title: string
+  dataName: string
+  size: RankedWave['size']
+  distribution: string
+  access: string
+  publicData: boolean
+  defaultStrategy: RankedWave['defaultStrategy']
+  difficulty: WaveDifficulty
+  finalRush?: boolean
+  loadOffset?: LoadDelta
+  movementOffset?: number
+  resourceOffset?: number
+}
+
+const createWaveVariant = (sourceId: number, id: number, templateId: string, patch: WaveVariantPatch): RankedWave => {
+  const source = rankedWaveTemplates.find((wave) => wave.id === sourceId)
+  if (!source) throw new Error(`Missing ranked wave template ${sourceId}`)
+  const loadOffset = patch.loadOffset ?? [0, 0, 0]
+  const movementOffset = patch.movementOffset ?? 0
+  const resourceOffset = patch.resourceOffset ?? 0
+  const { difficulty, finalRush, loadOffset: _loadOffset, movementOffset: _movementOffset, resourceOffset: _resourceOffset, ...fields } = patch
+  return {
+    ...source,
+    ...fields,
+    id,
+    templateId,
+    difficulty,
+    finalRush: finalRush ?? source.finalRush,
+    options: source.options.map((option) => ({
+      ...option,
+      loadDelta: option.loadDelta.map((value, index) => Math.max(1, value + loadOffset[index])) as LoadDelta,
+      crossNodeMovement: Math.max(0, option.crossNodeMovement + movementOffset),
+      resourceCost: Math.max(1, option.resourceCost + resourceOffset),
+    })),
+  }
+}
+
+// The library deliberately contains more candidates than one run needs. A
+// seeded draw below chooses without replacement, so every player sees the
+// same fair 14-wave shape for a Daily Seed while different seeds still feel
+// meaningfully different.
+const variantWaves: RankedWave[] = [
+  createWaveVariant(1, 101, 'easy-device-heartbeats', {
+    title: '设备心跳事件进入', dataName: '设备心跳事件', size: 2,
+    distribution: '设备编号均匀，少数园区访问集中', access: '按设备编号查询', publicData: false, defaultStrategy: 'id', difficulty: 'easy',
+    loadOffset: [1, 0, 1], movementOffset: 1,
+  }),
+  createWaveVariant(2, 102, 'easy-favorite-changes', {
+    title: '用户收藏变更', dataName: '收藏变更记录', size: 2,
+    distribution: '用户编号均匀，写入频率平稳', access: '按用户编号查询', publicData: false, defaultStrategy: 'id', difficulty: 'easy',
+    loadOffset: [0, 1, 0], resourceOffset: 1,
+  }),
+  createWaveVariant(5, 103, 'easy-service-catalog', {
+    title: '服务标签目录上线', dataName: '服务标签目录', size: 1,
+    distribution: '规模小，所有服务都会读取', access: '按标签编码查询', publicData: true, defaultStrategy: 'replicated', difficulty: 'easy',
+    loadOffset: [1, 1, 0], movementOffset: -1,
+  }),
+  createWaveVariant(3, 104, 'easy-campus-signups', {
+    title: '校园活动报名', dataName: '校园活动报名', size: 3,
+    distribution: '校区是最明显的自然分布', access: '按校区汇总', publicData: false, defaultStrategy: 'region', difficulty: 'easy',
+    loadOffset: [0, 1, 1], movementOffset: 1,
+  }),
+  createWaveVariant(4, 105, 'easy-support-notices', {
+    title: '客服通知队列生成', dataName: '客服通知队列', size: 2,
+    distribution: '用户编号均匀，单用户访问频繁', access: '按用户查询', publicData: false, defaultStrategy: 'id', difficulty: 'easy',
+    loadOffset: [1, 0, 1], resourceOffset: 1,
+  }),
+  createWaveVariant(7, 106, 'easy-search-hotwords', {
+    title: '热门搜索词刷新', dataName: '热门搜索词缓存', size: 1,
+    distribution: '小型公共数据，访问突发', access: '所有业务随机读取', publicData: true, defaultStrategy: 'replicated', difficulty: 'easy',
+    loadOffset: [0, 1, 0], movementOffset: 1,
+  }),
+  createWaveVariant(6, 201, 'medium-monitoring-series', {
+    title: '时间序列监控涌入', dataName: '时间序列监控', size: 5,
+    distribution: '持续增长，写入量大', access: '按时间段检索', publicData: false, defaultStrategy: 'time', difficulty: 'medium',
+    loadOffset: [1, 0, 1], resourceOffset: 1,
+  }),
+  createWaveVariant(10, 202, 'medium-inventory-events', {
+    title: '库存变更流高峰', dataName: '库存变更事件', size: 4,
+    distribution: '仓库分布均匀，写入峰值高', access: '按商品与订单追踪', publicData: false, defaultStrategy: 'id', difficulty: 'medium',
+    loadOffset: [0, 1, 1], movementOffset: 1,
+  }),
+  createWaveVariant(9, 203, 'medium-cross-region-orders', {
+    title: '跨区订单汇总', dataName: '跨区订单数据', size: 3,
+    distribution: '区域访问明显，热点城市集中', access: '按地区汇总', publicData: false, defaultStrategy: 'region', difficulty: 'medium',
+    loadOffset: [1, 1, 0], resourceOffset: 1,
+  }),
+  createWaveVariant(8, 204, 'medium-device-traces', {
+    title: '设备轨迹批量归档', dataName: '设备轨迹', size: 4,
+    distribution: '设备多，单设备轨迹连续', access: '按设备查询最近记录', publicData: false, defaultStrategy: 'id', difficulty: 'medium',
+    loadOffset: [1, 0, 1], movementOffset: 2,
+  }),
+  createWaveVariant(6, 205, 'medium-audit-stream', {
+    title: '审计事件流进入', dataName: '审计事件', size: 5,
+    distribution: '持续增长，按时间窗口读取', access: '按时间段检索', publicData: false, defaultStrategy: 'time', difficulty: 'medium',
+    loadOffset: [0, 1, 1], resourceOffset: 2,
+  }),
+  createWaveVariant(10, 206, 'medium-marketing-clicks', {
+    title: '营销点击流水上升', dataName: '营销点击流水', size: 4,
+    distribution: '用户分布均匀，短时写入密集', access: '按用户与活动追踪', publicData: false, defaultStrategy: 'id', difficulty: 'medium',
+    loadOffset: [1, 1, 0], movementOffset: 2,
+  }),
+  createWaveVariant(6, 207, 'medium-backup-metrics', {
+    title: '备份指标持续写入', dataName: '备份指标', size: 5,
+    distribution: '数据持续增长，按时间窗口读取', access: '按时间段检索', publicData: false, defaultStrategy: 'time', difficulty: 'medium',
+    loadOffset: [1, 1, 0], resourceOffset: 1,
+  }),
+  createWaveVariant(9, 208, 'medium-delivery-regions', {
+    title: '配送区域状态汇总', dataName: '配送区域状态', size: 3,
+    distribution: '区域访问明显，少数城市形成热点', access: '按地区汇总', publicData: false, defaultStrategy: 'region', difficulty: 'medium',
+    loadOffset: [0, 1, 1], movementOffset: 1,
+  }),
+  createWaveVariant(10, 209, 'medium-login-audits', {
+    title: '登录审计事件激增', dataName: '登录审计事件', size: 4,
+    distribution: '用户分布均匀，短时写入密集', access: '按用户与时间追踪', publicData: false, defaultStrategy: 'id', difficulty: 'medium',
+    loadOffset: [1, 0, 1], resourceOffset: 2,
+  }),
+  createWaveVariant(8, 210, 'medium-mobile-traces', {
+    title: '移动端轨迹汇总', dataName: '移动端轨迹', size: 4,
+    distribution: '设备数量多，单设备记录连续', access: '按设备查询最近记录', publicData: false, defaultStrategy: 'id', difficulty: 'medium',
+    loadOffset: [0, 1, 1], movementOffset: 2,
+  }),
+  createWaveVariant(12, 301, 'hard-settlement-stream', {
+    title: 'FINAL RUSH · 结算流水进入', dataName: '结算流水', size: 5,
+    distribution: '连续大批量写入，节点余量有限', access: '按账户追踪与时间检索', publicData: false, finalRush: true, defaultStrategy: 'id', difficulty: 'hard',
+    loadOffset: [1, 0, 1], resourceOffset: 1,
+  }),
+  createWaveVariant(13, 302, 'hard-hot-account-query', {
+    title: 'FINAL RUSH · 热点账户查询', dataName: '热点账户画像', size: 3,
+    distribution: '同一批热点账户被反复查询', access: '按账户编号高频查询', publicData: false, finalRush: true, defaultStrategy: 'id', difficulty: 'hard',
+    loadOffset: [0, 1, 1], movementOffset: 1,
+  }),
+  createWaveVariant(14, 303, 'hard-public-config-storm', {
+    title: 'FINAL RUSH · 公共配置风暴', dataName: '公共配置目录', size: 2,
+    distribution: '公共数据请求同时涌入三个 DN', access: '全局高频读取', publicData: true, finalRush: true, defaultStrategy: 'replicated', difficulty: 'hard',
+    loadOffset: [1, 0, 1], resourceOffset: 1,
+  }),
+  createWaveVariant(12, 304, 'hard-live-alerts', {
+    title: 'FINAL RUSH · 实时告警批量进入', dataName: '实时告警事件', size: 5,
+    distribution: '告警连续涌入，写入压力陡增', access: '按设备与时间检索', publicData: false, finalRush: true, defaultStrategy: 'time', difficulty: 'hard',
+    loadOffset: [1, 1, 0], movementOffset: 1,
+  }),
+  createWaveVariant(13, 305, 'hard-risk-profiles', {
+    title: 'FINAL RUSH · 风控画像被反复查询', dataName: '风控画像', size: 3,
+    distribution: '热点账户集中，查询密度极高', access: '按账户编号高频查询', publicData: false, finalRush: true, defaultStrategy: 'id', difficulty: 'hard',
+    loadOffset: [1, 0, 1], resourceOffset: 1,
+  }),
+  createWaveVariant(14, 306, 'hard-global-labels', {
+    title: 'FINAL RUSH · 全局标签访问激增', dataName: '全局标签目录', size: 2,
+    distribution: '小型公共数据，三个 DN 同时请求', access: '按标签编码高频读取', publicData: true, finalRush: true, defaultStrategy: 'replicated', difficulty: 'hard',
+    loadOffset: [0, 1, 1], movementOffset: 1,
+  }),
+]
+
+const normalizeCoreWave = (wave: RankedWave): RankedWave => ({
+  ...wave,
+  templateId: `core-${String(wave.id).padStart(2, '0')}`,
+  difficulty: difficultyForCoreWave(wave),
+})
+
+export const rankedWaveLibrary: RankedWave[] = [
+  ...rankedWaveTemplates.map(normalizeCoreWave),
+  ...variantWaves,
+]
+
+export const rankedDifficultyQuota = {
+  easy: 3,
+  medium: 8,
+  hard: 3,
+} as const satisfies Record<WaveDifficulty, number>
+
+export const rankedWaveCount = Object.values(rankedDifficultyQuota).reduce((sum, value) => sum + value, 0)
 export const rankedDurationSeconds = 90
 export const rankedDecisionWindowMs = 4000
 export const rankedWaveArrivalSeconds = [0, 6, 12, 18, 24, 30, 36, 42, 48, 54, 60, 68, 77, 86] as const
 
-export const getRankedWave = (index: number) => rankedWaves[Math.max(0, Math.min(rankedWaves.length - 1, index))]
+const defaultRankedSeed = 'TD-DEFAULT'
+
+const hashSeed = (seed: string) => {
+  let hash = 2166136261
+  for (const character of seed) {
+    hash ^= character.charCodeAt(0)
+    hash = Math.imul(hash, 16777619)
+  }
+  return hash >>> 0
+}
+
+const createSeededRandom = (seed: string) => {
+  let value = hashSeed(seed)
+  return () => {
+    value = (value + 0x6D2B79F5) | 0
+    let result = Math.imul(value ^ (value >>> 15), 1 | value)
+    result ^= result + Math.imul(result ^ (result >>> 7), 61 | result)
+    return ((result ^ (result >>> 14)) >>> 0) / 4294967296
+  }
+}
+
+function shuffle<T>(items: readonly T[], random: () => number) {
+  const result = [...items]
+  for (let index = result.length - 1; index > 0; index -= 1) {
+    const other = Math.floor(random() * (index + 1))
+    ;[result[index], result[other]] = [result[other], result[index]]
+  }
+  return result
+}
+
+const wavePool = (difficulty: WaveDifficulty) => rankedWaveLibrary.filter((wave) => wave.difficulty === difficulty)
+
+export const buildRankedWaveSet = (seed: string): RankedWave[] => {
+  const random = createSeededRandom(seed || defaultRankedSeed)
+  const selected = (['easy', 'medium', 'hard'] as const).flatMap((difficulty) => {
+    const count = rankedDifficultyQuota[difficulty]
+    const pool = wavePool(difficulty)
+    if (pool.length < count) throw new Error(`Ranked wave pool for ${difficulty} is too small`)
+    return shuffle(pool, random).slice(0, count)
+  })
+  return selected.map((wave, index) => ({
+    ...wave,
+    id: index + 1,
+  }))
+}
+
+const rankedWaveSets = new Map<string, RankedWave[]>()
+
+export const getRankedWaveSet = (seed = defaultRankedSeed) => {
+  const key = seed || defaultRankedSeed
+  const cached = rankedWaveSets.get(key)
+  if (cached) return cached
+  const generated = buildRankedWaveSet(key)
+  rankedWaveSets.set(key, generated)
+  return generated
+}
+
+export const rankedWaves = getRankedWaveSet(defaultRankedSeed)
+
+export const tutorialWave: RankedWave = {
+  ...(rankedWaveLibrary.find((wave) => wave.templateId === 'core-01') as RankedWave),
+  id: 1,
+}
+
+export const getRankedWave = (index: number, seed = defaultRankedSeed) => {
+  const waves = getRankedWaveSet(seed)
+  return waves[Math.max(0, Math.min(waves.length - 1, index))]
+}

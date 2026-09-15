@@ -21,10 +21,10 @@ export const getDailySeed = (date = new Date()) => {
 export const sessionModes = {
   tutorial: {
     label: '新手教学',
-    description: '约 45～60 秒 · 只认识 CN、DN、Shard、Replication · 不计入排行榜',
+    description: '约 45～60 秒 · 7 个教学节点 · 允许无限重试 · 不计入排行榜',
   },
   ranked: {
     label: 'Ranked 极速调度',
-    description: '90 秒 · 14 波 · 同一 Daily Seed · Combo 冲榜',
+    description: '90 秒 · 14 波 · Daily Seed 波次库 · Combo 冲榜',
   },
 } as const
