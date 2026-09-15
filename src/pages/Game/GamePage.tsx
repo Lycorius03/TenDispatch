@@ -68,14 +68,14 @@ const tutorialSteps = [
   { kicker: '01 / YOUR MISSION', title: '你要做的不是背术语，而是做取舍', body: '这一局只记住五步：看任务卡、读三个选项、选一个、点击确认、看结果。教学不限时、不计分、不失败，选错了也能重试。', note: '先学会操作顺序，再慢慢理解每个参数。' },
   { kicker: '02 / CN + DN', title: '数据从哪里来，又要到哪里去', body: '上方入口来的货物会经过 CN，再送到下方三个 DN。你不用拖动货物，只要在选项里选一个方案，确认后观察哪个 DN 变忙。', note: 'DN 负载就是节点当前有多忙；数字越高，余量越少。' },
   { kicker: '03 / SHARD + QUERY', title: '放在哪里，会决定以后怎么查', body: '把“主要访问”当成任务目标：找用户时，优先看能不能直达；公共数据时，留意是否每次都要绕路。训练波会让你亲手比较这些变化。', note: '判断顺序：先看任务卡，再看方案参数，最后看当前负载。' },
-  { kicker: '04 / SCORE MAP', title: '看懂四项评分和三行参数', body: '“查询 1 DN”表示要问几座仓库，“搬运 10%”表示跨仓库配合多少，“成本 9”表示占用多少资源。先读这三行，再看负载；正式模式还会看决策速度。', note: '规模只是线索之一；你要综合看参数、节点余量和任务目标。' },
+  { kicker: '04 / SCORE MAP', title: '看懂四项评分和三行参数', body: '“查询 1 DN”看要问几座仓库，“搬运 10%”看要跨节点配合多少，“成本 9”看要占多少资源。把三行参数和任务卡上的分布、主要访问放在一起，先判断本波最怕什么，再用数字确认。', note: '查询、搬运、成本没有永远的第一名；任务卡会告诉你这一波该优先防哪一种代价。' },
   { kicker: '05 / TRAINING 1', title: '训练 1 · 分片键与查询条件', body: '读任务卡，比较三个方案，然后点击确认。确认后再看查询路径和三个 DN 的新负载。', note: '本波不限时；没有要背的标准答案。' },
   { kicker: '06 / REVIEW 1', title: '复盘 1 · 从选择看到后果', body: '把选择、查询路径和三个 DN 的新负载连起来看。结果不是只看一个数字，而是看这套策略是否同时照顾了写入和查询。', note: '你可以重试这一波，观察另一种选择会发生什么。' },
   { kicker: '07 / TRAINING 2', title: '训练 2 · 小型公共数据要不要复制', body: '先看这批数据会不会被所有业务反复读取，再比较“少存一份”和“多存副本”哪个更适合当前任务。', note: '看结果时同时关注查询、搬运、成本和负载。' },
   { kicker: '08 / REVIEW 2', title: '复盘 2 · 查询效率与资源不是一回事', body: '查询 DN 少，不代表资源一定最省；成本低，也不代表整体查询路径最好。决策要同时查看查询、搬运、成本和负载。', note: '继续前可以换一个方案再比较。' },
-  { kicker: '09 / TRAINING 3', title: '训练 3 · 大型持续写入的综合判断', body: '先看数据规模和增长速度，再看当前 DN 余量，最后比较查询、搬运和成本。', note: '不要只盯着“查询 1 DN”；大数据的额外代价也要算进去。' },
-  { kicker: '10 / REVIEW 3', title: '复盘 3 · 建立自己的检查顺序', body: '每波都按同一套顺序：看任务卡、读参数、选方案、确认、看结果。正式模式才会计时，没确认的波次按 0 分。', note: '这套顺序比记住某个固定答案更重要。' },
-  { kicker: '11 / RANKED READY', title: '正式模式还会发生什么', body: 'Ranked 固定 90 秒、14 波，负载、查询压力、资源和副本状态会继承。预测可查看趋势但本波评级封顶 GOOD；撤回扣 50 分并清空 Combo；每波 4 秒，未确认直接记 0 分。', note: '准备好后返回首页，再由你决定什么时候开始正式挑战。' },
+  { kicker: '09 / TRAINING 3', title: '训练 3 · 大型持续写入的综合判断', body: '先看任务卡的分布和主要访问，猜本波最需要避开的代价，再用查询、搬运、成本和 DN 余量检查判断。', note: '不要只盯着“查询 1 DN”；大数据的额外代价也要算进去。' },
+  { kicker: '10 / REVIEW 3', title: '复盘 3 · 建立自己的检查顺序', body: '每波都按同一套顺序：看任务卡的分布和主要访问、读参数、判断优先级、选方案、确认、看结果。正式模式没确认的波次按 0 分。', note: '这套顺序比记住某个固定答案更重要。' },
+  { kicker: '11 / RANKED READY', title: '正式模式还会发生什么', body: 'Ranked 固定 90 秒、14 波，负载、查询压力、资源和副本状态会继承。预测可查看趋势但本波评级封顶 GOOD；撤回扣 50 分并清空 Combo；每波 15 秒，未确认直接记 0 分。', note: '准备好后返回首页，再由你决定什么时候开始正式挑战。' },
 ]
 
 const tutorialTrainingGoals = [
@@ -156,7 +156,7 @@ function ModernConsole(p: GamePageProps & { displayLoads: GameState['dnLoads'] }
     </section> : <section className="modern-controls ranked-controls">
       <div className="modern-mission-copy"><span>{wave?.finalRush ? `FINAL RUSH · WAVE ${wave.id}` : `WAVE ${String(wave?.id ?? 0).padStart(2, '0')} · ${wave?.publicData ? 'PUBLIC DATA' : 'DATA FLOW'}`}</span><h2>{result ? `Wave ${latest?.wave} · ${latest?.grade}` : wave?.title}</h2>{result ? <p>{latest?.note}</p> : <p><b>{wave?.dataName}</b> · 规模 {Array.from({ length: 5 }, (_, index) => index < (wave?.size ?? 1) ? '★' : '☆').join('')}<br />分布：{wave?.distribution}<br />高频访问：{wave?.access}{wave?.publicData ? ' · 公共数据' : ''}</p>}<small>评估看数据量、热点分布、查询是否对齐，以及当前节点余量；规模不是唯一难度。</small><small className="ranked-death-rule">死亡条件：任一 DN 负载达到 100%，立即结束本局。</small></div>
       <div className="ranked-decision-desk">
-        {!result && <div className="decision-clock"><span>本波决策窗口</span><strong>{decisionRemaining.toFixed(1)}s</strong><i><b style={{ transform: `scaleX(${Math.min(1, decisionRemaining / 4)})` }} /></i><small>未确认策略：本波直接 0 分</small></div>}
+        {!result && <div className="decision-clock"><span>本波决策窗口</span><strong>{decisionRemaining.toFixed(1)}s</strong><i><b style={{ transform: `scaleX(${Math.min(1, decisionRemaining / 15)})` }} /></i><small>未确认策略：本波直接 0 分</small></div>}
         {!result && <button className="decision-guide-toggle" aria-expanded={showDecisionGuide} aria-controls="decision-data-guide" onClick={() => setShowDecisionGuide((open) => !open)}>{showDecisionGuide ? '收起决策数据说明' : '？ 决策数据说明'}</button>}
         {!result && showDecisionGuide && <DecisionDataGuide />}
         {result ? <div className="wave-result-card"><div><strong>{latest?.score.total}/100</strong><span>{latest?.grade} · Combo {latest?.combo > 0 ? `×${latest?.multiplier.toFixed(2)}` : '已清零'}</span></div><div className="result-mini-grid"><span>负载 {latest?.score.loadBalance}/40</span><span>查询 {latest?.score.queryEfficiency}/30</span><span>资源 {latest?.score.resourceCost}/20</span><span>速度 {latest?.score.decisionSpeed}/10</span></div></div> : <div className="ranked-options">{wave?.options.map((option) => { const preview = projected.find((item) => item.id === option.id); return <button key={option.id} aria-pressed={selected === option.id} className={`${selected === option.id ? 'selected ' : ''}${preview?.fatal ? 'is-fatal' : ''}`} onClick={() => setSelected(option.id)}><strong>{option.label}</strong><small>{option.detail}</small><em className={preview?.fatal ? 'is-fatal' : ''}>查询 {option.queryNodes} DN · 搬运 {option.crossNodeMovement}% · 成本 {option.resourceCost}{preview?.fatal ? ' · 达到 100% 即死亡' : ''}</em></button> })}</div>}
@@ -185,10 +185,10 @@ function TutorialWelcome({ message, onStart, onExit }: { message: string; onStar
 function DecisionDataGuide() {
   return <aside className="decision-data-guide" id="decision-data-guide" aria-label="决策数据说明">
     <header><b>怎么用这三项信息</b><span>先判断，再确认</span></header>
-    <div><strong>查询 1 DN</strong><p>这次查询只需要问 1 个数据节点，路径最直接。1 / 2 / 3 个 DN 分别对应查询项 30 / 20 / 8 分。</p></div>
-    <div><strong>搬运 10%</strong><p>有 10% 的请求或数据需要跨节点协作。比例越低，等待与协作开销越小；它会扣减资源项。</p></div>
-    <div><strong>成本 9</strong><p>这条策略本身占用的存储、同步等资源成本。数值越低越省；它和搬运一起决定资源项的 20 分。</p></div>
-    <footer>最后还要看 DN 负载（40 分）和确认速度（10 分）。没有唯一答案：优先避开 100% 过载，再选择符合主要查询条件的方案。</footer>
+    <div><strong>查询 1 DN</strong><p>表示这次请求只需要问 1 个数据节点，路径更直接。对照任务卡的“主要访问”：如果它像是在找某一类数据，能否少问节点往往很关键。</p></div>
+    <div><strong>搬运 10%</strong><p>表示约有 10% 的请求或数据需要跨节点配合。对照任务卡的“分布”：数据越分散、访问越容易跨区，搬运带来的等待和协作就越值得警惕。</p></div>
+    <div><strong>成本 9</strong><p>表示这条方案要占用的存储、同步等资源。数据量大、增长快或需要多份副本时，成本的影响会更明显；数值越低通常越省。</p></div>
+    <footer>快速判断：先看任务卡的分布和主要访问，猜本波最怕绕路、拥堵还是浪费资源，再用查询、搬运、成本验证。最后检查 DN 余量，别只挑某一项最低。</footer>
   </aside>
 }
 

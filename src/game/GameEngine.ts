@@ -72,7 +72,7 @@ export class GameEngine {
         waveStartedAt: now,
         cargoMode: 'idle',
         deathReason: undefined,
-        npcMessage: 'RANKED 线路已开启。先看当前状态，再在 4 秒内决定这一波怎么放。',
+        npcMessage: 'RANKED 线路已开启。先扫一眼任务卡和当前负载，再在 15 秒内决定这一波怎么放。',
       }
     }
     if (mode === 'tutorial') {
@@ -131,7 +131,7 @@ export class GameEngine {
         tutorialStep: 3,
         queryNodes: 1,
         cargoMode: 'query',
-        npcMessage: '把“主要访问”当成玩家目标：找用户就优先看能不能直达，公共数据就看是否需要每次绕路。你会在训练波里亲自试一次。',
+        npcMessage: '任务卡上的“主要访问”和“分布”不是背景说明，而是这一波的判断线索：先猜它最怕绕路、拥堵还是浪费资源，再用三个方案下面的数字验证。',
       }
     }
     if (state.tutorialStep === 3) {
@@ -140,7 +140,7 @@ export class GameEngine {
         tutorialStep: 4,
         queryNodes: 1,
         cargoMode: 'query',
-        npcMessage: '选项下面的“查询 1 DN / 搬运 10% / 成本 9”就是这条方案的使用说明：查询是要问几座仓库，搬运是要跨仓库配合多少，成本是要占多少资源。先读它们，再看当前负载。',
+        npcMessage: '“查询 1 DN”看要问几座仓库；“搬运 10%”看有多少请求要跨节点配合；“成本 9”看这套安排要占多少存储、同步等资源。把它们和任务卡的主要访问、分布放在一起看，数字才有意义。',
       }
     }
     if (state.tutorialStep === 4) {
@@ -178,7 +178,7 @@ export class GameEngine {
         tutorialWaveCompleted: false,
         tutorialStrategy: undefined,
         cargoMode: 'idle',
-        npcMessage: '训练 3 开始。先看数据规模和增长速度，再看当前 DN 余量，最后比较查询、搬运和成本；不要只盯着“查询 1 DN”。',
+        npcMessage: '训练 3 开始。先看任务卡的分布和主要访问，判断本波最需要避开什么；再用查询、搬运、成本和 DN 余量检查你的判断。',
       }
     }
     if (state.tutorialStep === 10 && state.tutorialWaveCompleted) {
@@ -186,7 +186,7 @@ export class GameEngine {
         ...state,
         tutorialStep: 11,
         cargoMode: 'idle',
-        npcMessage: '三波训练完成。进入正式模式后仍按同一顺序操作：看任务卡、读参数、选方案、确认、看结果。正式模式才会计时；没确认的波次按 0 分处理。',
+        npcMessage: '三波训练完成。进入正式模式后仍按同一顺序操作：看任务卡的分布和主要访问、读三个参数、选方案、确认、看结果。每波有 15 秒，没确认按 0 分处理。',
       }
     }
     if (state.tutorialStep === 11) {
@@ -341,7 +341,7 @@ export class GameEngine {
       queryNodes: selected.queryNodes,
       crossNodeMovement,
       loads,
-      note: timedOut ? `本波未在 4 秒内确认策略，直接记 0 分；系统仅为保持线路运转而采用默认策略：${wave.options.find((option) => option.id === wave.defaultStrategy)?.label ?? selected.label}` : selected.note,
+        note: timedOut ? `本波未在 15 秒内确认策略，直接记 0 分；系统仅为保持线路运转而采用默认策略：${wave.options.find((option) => option.id === wave.defaultStrategy)?.label ?? selected.label}` : selected.note,
       predictionUsed: state.predictionUsedThisWave,
     }
     const nextPoor = state.poorCount + Number(grade === 'POOR')
