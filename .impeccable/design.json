@@ -1,0 +1,220 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-15T08:57:50.679Z",
+  "title": "Design System: OpenTenBase 数据调度中心 · TenDispatch",
+  "extensions": {
+    "colorMeta": {
+      "ink": {
+        "role": "neutral",
+        "displayName": "底幕深蓝",
+        "tonalRamp": [
+          "oklch(15% 0.025 255)",
+          "oklch(26% 0.025 255)",
+          "oklch(38% 0.025 255)",
+          "oklch(49% 0.025 255)",
+          "oklch(61% 0.025 255)",
+          "oklch(72% 0.025 255)",
+          "oklch(84% 0.025 255)",
+          "oklch(95% 0.025 255)"
+        ]
+      },
+      "panel": {
+        "role": "neutral",
+        "displayName": "仓库深蓝",
+        "tonalRamp": [
+          "oklch(15% 0.035 255)",
+          "oklch(26% 0.035 255)",
+          "oklch(38% 0.035 255)",
+          "oklch(49% 0.035 255)",
+          "oklch(61% 0.035 255)",
+          "oklch(72% 0.035 255)",
+          "oklch(84% 0.035 255)",
+          "oklch(95% 0.035 255)"
+        ]
+      },
+      "cyan": {
+        "role": "primary",
+        "displayName": "数据青色",
+        "tonalRamp": [
+          "oklch(15% 0.12 225)",
+          "oklch(26% 0.12 225)",
+          "oklch(38% 0.12 225)",
+          "oklch(49% 0.12 225)",
+          "oklch(61% 0.12 225)",
+          "oklch(72% 0.12 225)",
+          "oklch(84% 0.12 225)",
+          "oklch(95% 0.12 225)"
+        ]
+      },
+      "orange": {
+        "role": "secondary",
+        "displayName": "查询橙色",
+        "tonalRamp": [
+          "oklch(15% 0.14 65)",
+          "oklch(26% 0.14 65)",
+          "oklch(38% 0.14 65)",
+          "oklch(49% 0.14 65)",
+          "oklch(61% 0.14 65)",
+          "oklch(72% 0.14 65)",
+          "oklch(84% 0.14 65)",
+          "oklch(95% 0.14 65)"
+        ]
+      },
+      "gold": {
+        "role": "tertiary",
+        "displayName": "副本金色",
+        "tonalRamp": [
+          "oklch(15% 0.12 85)",
+          "oklch(26% 0.12 85)",
+          "oklch(38% 0.12 85)",
+          "oklch(49% 0.12 85)",
+          "oklch(61% 0.12 85)",
+          "oklch(72% 0.12 85)",
+          "oklch(84% 0.12 85)",
+          "oklch(95% 0.12 85)"
+        ]
+      },
+      "critical": {
+        "role": "tertiary",
+        "displayName": "临界红色",
+        "tonalRamp": [
+          "oklch(15% 0.19 25)",
+          "oklch(26% 0.19 25)",
+          "oklch(38% 0.19 25)",
+          "oklch(49% 0.19 25)",
+          "oklch(61% 0.19 25)",
+          "oklch(72% 0.19 25)",
+          "oklch(84% 0.19 25)",
+          "oklch(95% 0.19 25)"
+        ]
+      },
+      "text": {
+        "role": "neutral",
+        "displayName": "正文浅色",
+        "tonalRamp": [
+          "oklch(15% 0.025 245)",
+          "oklch(26% 0.025 245)",
+          "oklch(38% 0.025 245)",
+          "oklch(49% 0.025 245)",
+          "oklch(61% 0.025 245)",
+          "oklch(72% 0.025 245)",
+          "oklch(84% 0.025 245)",
+          "oklch(95% 0.025 245)"
+        ]
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "说明蓝灰",
+        "tonalRamp": [
+          "oklch(15% 0.04 245)",
+          "oklch(26% 0.04 245)",
+          "oklch(38% 0.04 245)",
+          "oklch(49% 0.04 245)",
+          "oklch(61% 0.04 245)",
+          "oklch(72% 0.04 245)",
+          "oklch(84% 0.04 245)",
+          "oklch(95% 0.04 245)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "headline": {
+        "displayName": "主标题",
+        "purpose": "OpenTenBase 主标题与 CN 标识。"
+      },
+      "body": {
+        "displayName": "中文正文",
+        "purpose": "任务说明、策略按钮与 NPC 信息。"
+      }
+    },
+    "shadows": [
+      {
+        "name": "auxiliary-button",
+        "value": "0 12px 26px rgba(3, 12, 16, .35)",
+        "purpose": "既有辅助页主按钮；不用于所有场景面板。"
+      }
+    ],
+    "motion": [
+      {
+        "name": "control-state",
+        "value": ".2s",
+        "purpose": "策略按钮背景与边框过渡。"
+      },
+      {
+        "name": "npc-enter",
+        "value": ".24s ease-out",
+        "purpose": "通讯气泡从下方 10px 处淡入。"
+      },
+      {
+        "name": "warehouse-warning",
+        "value": "1.2s ease-in-out infinite",
+        "purpose": "负载至少 80% 时仓库描边脉冲。"
+      },
+      {
+        "name": "critical-light",
+        "value": ".7s infinite",
+        "purpose": "负载至少 95% 时警示灯闪烁。"
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "auxiliary-medium",
+        "value": "1080px"
+      },
+      {
+        "name": "auxiliary-tablet",
+        "value": "820px"
+      },
+      {
+        "name": "auxiliary-small",
+        "value": "600px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "确认调度",
+      "kind": "button",
+      "refersTo": "confirm-dispatch",
+      "description": "确认已选策略；未满足条件时禁用。",
+      "html": "<button class=\"ds-confirm\">确认调度</button>",
+      "css": ".ds-confirm{width:180px;height:56px;border:0;border-radius:0;background:var(--cyan,#32C7F4);color:var(--ink,#07111F);font:700 16px \"Noto Sans SC\",\"Microsoft YaHei\",sans-serif;cursor:pointer;transition:background .2s}.ds-confirm:hover:not(:disabled){background:#83DFFF}.ds-confirm:focus-visible{outline:2px solid #BFFCFF;outline-offset:4px}.ds-confirm:disabled{background:#17334B;color:#ACBED0;cursor:not-allowed}"
+    },
+    {
+      "name": "策略选项",
+      "kind": "button",
+      "refersTo": "strategy-option",
+      "description": "一个策略选项；选择后保留选中填充与边框。",
+      "html": "<button class=\"ds-strategy\" aria-pressed=\"true\">均匀分布</button>",
+      "css": ".ds-strategy{width:220px;height:56px;border:1px solid #385D7C;border-radius:0;background:#10243A;color:#D6E6F4;font:400 16px \"Noto Sans SC\",\"Microsoft YaHei\",sans-serif;cursor:pointer;transition:background .2s,border-color .2s}.ds-strategy:hover{background:#193B55;border-color:var(--cyan,#32C7F4)}.ds-strategy[aria-pressed=true]{background:#164461;border-color:var(--cyan,#32C7F4)}.ds-strategy:focus-visible{outline:2px solid #BFFCFF;outline-offset:4px}.ds-strategy:disabled{opacity:.45;cursor:not-allowed}"
+    }
+  ],
+  "narrative": {
+    "northStar": "二维数据物流中心",
+    "overview": "深蓝色操作台围绕一个连续的二维物流场景展开。OpenTenBase 是首要标题，TenDispatch 是从属产品名；CN、三个 DN 与 GTM 是可观察的教学机制。控制区辅助场景，玩家通过数据搬运和节点负载理解决策。\n\n本文从当前源代码与用户指定的桌面方向提取。浏览器验证被管理员策略检查阻止；构建和逻辑测试不能替代截图、字体渲染或交互视觉验收。",
+    "keyCharacteristics": [
+      "中央二维 SVG 场景，固定节点与运输轨道。",
+      "深蓝分层，青色写入、橙色查询、金色复制。",
+      "中文优先，状态同时提供文字、数值与颜色。",
+      "社团联络员通过右下角通讯气泡辅助教学。"
+    ],
+    "rules": [
+      {
+        "name": "The State Evidence Rule",
+        "body": "每种运输颜色必须有图例；负载状态必须同时显示百分比，不能依赖颜色或动画单独传意。",
+        "section": "colors"
+      }
+    ],
+    "dos": [
+      "Do 保持 OpenTenBase 首要、TenDispatch 从属的标题关系。",
+      "Do 将中央场景、轨道与节点位置作为桌面布局基准。",
+      "Do 用文字、数值和状态颜色共同解释调度后果。",
+      "Do 保留社团原始头像与可关闭的教学通讯。"
+    ],
+    "donts": [
+      "Don't 将二维场景改为三维展示或让装饰遮挡运输过程。",
+      "Don't 将警示、查询和副本颜色任意互换。",
+      "Don't 把构建成功或逻辑测试通过描述为浏览器视觉验收。"
+    ]
+  }
+}

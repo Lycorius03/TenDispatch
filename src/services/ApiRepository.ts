@@ -7,7 +7,7 @@ export class ApiRepository implements GameRepository {
     throw new Error(`ApiRepository 尚未启用：${this.endpoint}`)
   }
 
-  getRankings(): GameRecord[] {
+  getRankings(_view?: 'today' | 'overall'): GameRecord[] {
     throw new Error(`ApiRepository 尚未启用：${this.endpoint}`)
   }
 

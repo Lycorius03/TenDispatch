@@ -4,6 +4,13 @@ import type { GameState } from '../game/GameState'
 
 export interface GameRecord {
   id: string
+  mode?: GameState['mode']
+  difficulty?: string
+  sessionOptions?: GameState['options']
+  dailySeed?: string
+  rank?: number
+  personalBest?: number
+  distanceTop10?: number
   nickname: string
   score: number
   title: string
@@ -24,12 +31,19 @@ export interface GameRecord {
     stageTimes: GameState['stageTimes']
     totalDuration: number
     systemStatus?: string
+    waveCount?: number
+    perfectCount?: number
+    maxCombo?: number
+    averageDecisionMs?: number
+    crossNodeMovement?: number
+    undoPenalty?: number
+    worstWave?: GameState['worstWave']
   }
   events: GameEvent[]
 }
 
 export interface GameRepository {
   save(record: GameRecord): void
-  getRankings(): GameRecord[]
+  getRankings(view?: 'today' | 'overall'): GameRecord[]
   nextAnonymousName(): string
 }

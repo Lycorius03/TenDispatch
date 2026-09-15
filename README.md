@@ -1,60 +1,49 @@
-# TenDispatch
+# TenDispatch · OpenTenBase 数据调度中心
 
-> OpenTenBase 数据调度中心
+TenDispatch 是一个 90 秒快节奏数据调度竞技小游戏。玩家在 OpenTenBase 数据物流中心中连续处理 14 波数据，让三个 DN 的负载、查询效率和跨节点资源成本保持在可控区间，并通过 Combo 冲击本机排行榜。
 
-TenDispatch 是一款面向零基础参与者的 Web 互动科普小游戏。它把 OpenTenBase 分布式架构抽象成一座未来数据物流中心：数据先进入协调节点 CN，再由玩家配置策略，沿运输轨道进入三个数据节点 DN。
+## 当前玩法
 
-玩家无需阅读 SQL 或代码。游戏遵循“看到现象 → 做出操作 → 看到结果 → NPC 解释原因 → 给出专业名称”的顺序，让数据倾斜、查询路径、复制表和 GTM 事务协调成为可见的系统行为。
+- 新手教学：约 45～60 秒，只认识 CN、DN、Shard、Replication；允许无限重试，不参与排行榜。
+- Ranked 极速调度：固定 90 秒、14 波、同一 Daily Seed；波次之间保留 DN 负载、复制状态、资源占用和部分查询压力。
+- 每波有 4 秒基础决策窗口。超时不会 Game Over，系统会使用该波默认策略，但速度得分为 0。
+- 每波基础满分 100：节点负载均衡 40、查询效率 30、资源/复制成本 20、决策速度 10。
+- PERFECT / GOOD 会建立 Combo；倍率按连续优秀波次提升至 ×1.50，POOR 会清零。
+- 每局有预测 ×2 和撤回 ×1：预测会把该波最高评级封顶为 GOOD；撤回扣 50 分并清零 Combo。
+- Wave 12～14 是 Final Rush，只提高决策密度，不增加新规则；GTM 在场景中自动完成事务协调动画。
+- 结算页展示本局分、个人最佳、本机排名、距 TOP 10、PERFECT 数量、最大 Combo 和最多失分波次。
 
-## 完整体验
+当前仓库使用 `LocalRepository` 保存本机记录；没有伪造线上玩家或全球榜数据。`ApiRepository` 保留为未来接入真实排行榜的边界。
 
-- 场内新手引导：认识 CN 与 DN，并启动第一条基础调度链路
-- 数据分片：通过三种分配依据观察均衡分布或数据倾斜，并允许重新配置
-- 查询调度：比较单节点命中与多节点查询的路径和搬运成本
-- Replication：先处理小型高频公共数据，再观察复制海量日志的资源代价
-- GTM 事件：用一次同步波纹认识全局事务协调
-- FINAL DISPATCH：在峰值负载下组合已有机制，生成 STABLE / HIGH LOAD / OVERLOAD 结果
-- 调度报告：按五个维度计算 100 分制得分、称号和动态评价
-- 本地排行榜：按总分、提示次数、完成时间排序
-
-所有过程事件和成绩均通过 Repository 保存。当前默认实现为 `LocalRepository`（浏览器 `localStorage`），`ApiRepository` 只保留未来 HTTP API 接入边界，静态版本不依赖后端。
-
-## 本地运行
+## 开发与验证
 
 需要 Node.js 20.19+ 或 22.12+。
 
 ```bash
 npm install
 npm run dev
-```
-
-生产构建：
-
-```bash
+npm run typecheck
 npm run build
-npm run preview
+npm test
 ```
 
-构建产物位于 `dist/`。Vite 使用相对 base path，可直接部署到 GitHub Pages 的仓库子路径。
+引擎入口：
 
-## 项目结构
+- `src/config/rankedWaves.ts`：14 波任务卡、候选策略、Final Rush 标记和默认策略。
+- `src/game/GameState.ts`：Ranked 持续状态、Combo、辅助次数和波次结果模型。
+- `src/game/GameEngine.ts`：4 秒窗口、状态继承、预测、撤回、波次评分和结算流。
+- `src/game/ScoreEngine.ts`：四项波次得分、基础总分和可解释的下一局提升建议。
+- `src/pages/Game/GamePage.tsx`：教学与 Ranked 调度界面、实时指标和预测面板。
+- `src/services/`：本机记录、Daily Seed 榜单和未来 API 接入边界。
 
-```text
-src/
-├── game/          # GameState、GameEngine、ScoreEngine、EventTracker
-├── scenarios/     # 可配置场景说明（后续内容扩展入口）
-├── components/    # CN、DN、GTM、轨道、NPC 与状态组件
-├── pages/         # 首页、游戏、报告、排行榜
-├── services/      # Repository 接口、本地实现、API 预留实现
-└── config/        # 场景结果、评分、NPC 文案
-```
+## 视觉与交互约束
 
-## 替换社团头像
+游戏主场景以 1920×1080 逻辑画布等比缩放，CN、三个 DN 和 GTM 保持 OpenTenBase 架构语义。所有关键状态同时通过文字和数值表达，支持键盘焦点与 `prefers-reduced-motion`。
 
-当前 NPC 使用 `image/科成-开放原子开源社团.png` 正式资源，并通过 `src/config/npcConfig.ts` 配置。头像以 `object-fit: contain` 完整显示，不裁切原图。
+## 内容依据与参与开源
 
-## 制作方
+- [OpenTenBase 官方快速入门：CN、DN、GTM 架构](https://www.opentenbase.org/blog/01-quickstart/)
+- [OpenTenBase 官方基本使用：分片表与复制表](https://docs.opentenbase.org/guide/03-basic-use/)
+- [OpenTenBase 开源仓库](https://github.com/OpenTenBase/OpenTenBase)
 
-电子科技大学成都学院开放原子开源社团 · OpenTenBase 活动互动项目
-
-OpenTenBase 资料：[官方网站](https://www.opentenbase.org/) · [文档](https://docs.opentenbase.org/) · [GitHub](https://github.com/OpenTenBase/OpenTenBase)
+制作方：电子科技大学成都学院开放原子开源社团。

@@ -13,6 +13,10 @@ export type GameEventType =
   | 'final_dispatch_started'
   | 'final_dispatch_completed'
   | 'game_completed'
+  | 'ranked_wave_started'
+  | 'ranked_wave_completed'
+  | 'prediction_used'
+  | 'undo_used'
 
 export interface GameEvent {
   type: GameEventType
