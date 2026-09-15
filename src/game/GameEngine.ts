@@ -230,6 +230,7 @@ export class GameEngine {
     if (state.mode !== 'tutorial' || state.phase !== 'tutorial' || !decisionSteps.includes(state.tutorialStep)) return state
     const wave = tutorialWaves[state.tutorialWaveIndex] ?? tutorialWaves[0]
     const selected = wave.options.find((option) => option.id === strategy) ?? wave.options[0]
+    const best = wave.options.find((option) => option.id === wave.defaultStrategy) ?? wave.options[0]
     const loads = this.projectRankedLoads(state, wave, selected)
     const peak = Math.max(...loads)
     const systemStatus = peak >= 95 ? 'OVERLOAD' : peak >= 80 ? 'HIGH LOAD' : 'STABLE'
@@ -243,7 +244,9 @@ export class GameEngine {
       queryNodes: selected.queryNodes,
       systemStatus,
       cargoMode: selected.queryNodes > 1 ? 'query' : 'write',
-      npcMessage: `${selected.note} 教学关不限时、不计分，也不会因为选错而中断；你可以重试并比较另一种结果。`,
+      npcMessage: selected.id === best.id
+        ? `选对了，这一波的最佳方案是“${best.label}”。${best.note} 看看任务卡的分布和主要访问，你会发现它们与这套方案的参数正好对应。`
+        : `这次选的是“${selected.label}”，本波最佳方案是“${best.label}”。${best.note} 回看三个方案的查询、搬运、成本和负载，再比较它们与任务卡分布、主要访问的匹配度。`,
     }
   }
 
