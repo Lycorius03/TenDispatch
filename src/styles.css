@@ -662,6 +662,7 @@ button:disabled { cursor:not-allowed; opacity:.45; }
 .ranked-options button { min-height: 101px; padding: 12px 14px; display: flex; flex-direction: column; align-items: flex-start; gap: 5px; text-align: left; color: #d8edf5; background: #10243a; border: 1px solid #385d7c; transition: background .2s, border-color .2s, transform .2s; }
 .ranked-options button:hover { transform: translateY(-2px); border-color: var(--cyan); background: #173b56; }
 .ranked-options button.selected { border-color: var(--cyan); background: #164461; box-shadow: inset 0 0 0 1px rgba(50, 199, 244, .24); }
+.ranked-options button:disabled { cursor: not-allowed; opacity: .5; transform: none; }
 .ranked-options strong { color: #f1fbff; font-size: 14px; }
 .ranked-options small { min-height: 29px; color: #a9c3d3; font-size: 11px; line-height: 1.35; }
 .ranked-options em { color: #67a5bf; font-size: 10px; font-style: normal; }
