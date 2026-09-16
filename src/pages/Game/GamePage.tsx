@@ -1,4 +1,4 @@
-import { useEffect, useState, type CSSProperties, type MouseEvent as ReactMouseEvent } from 'react'
+import { useEffect, useMemo, useState, type CSSProperties, type MouseEvent as ReactMouseEvent } from 'react'
 import { getRankedWave, rankedDecisionWindowMs, rankedWaveArrivalSeconds, tutorialWaves } from '../../config/rankedWaves'
 import type { DispatchStrategy, FinalChoices, GameState, RankedStrategy, ReplicationStrategy } from '../../game/GameState'
 import { LogisticsCenter } from '../../components/LogisticsCenter/LogisticsCenter'
@@ -35,6 +35,16 @@ interface GamePageProps {
   onRankedGameOver?: () => void
 }
 type StrategyOption = { id: string; label: string; detail: string }
+
+export const shuffleOptions = <T,>(options: readonly T[], random: () => number = Math.random): T[] => {
+  const shuffled = [...options]
+  for (let index = shuffled.length - 1; index > 0; index -= 1) {
+    const swapIndex = Math.floor(random() * (index + 1))
+    ;[shuffled[index], shuffled[swapIndex]] = [shuffled[swapIndex], shuffled[index]]
+  }
+  return shuffled
+}
+
 const lessons: Record<string, [string, string, string]> = {
   tutorial: ['首席调度官，先熟悉一下工作台', '这一关先认识操作位置：中间的分拣台会接收数据，下面三个仓库会保存数据。请点击“接管工作台”，我们一起开始。', '我是科成-开放原子开源社团联络员。这一步先认识场景，不计分；点下按钮后，我会陪你做第一道选择。'],
   sharding: ['第一关 · 帮一万条报名找个合适的家', '首席调度官，我们要把一万条报名放进三个仓库。报名编号很分散，地区人数不一样，大多数人的状态却相同。三种放法各有侧重点，请先看清它们分别按什么字段来分。', '按编号：记录按编号分到三个仓库；按地区：相同地区的记录放在一起；按状态：相同报名状态的记录放在一起。选完后看负载数字，再决定这次分法是否合适。'],
@@ -75,7 +85,7 @@ const tutorialSteps = [
   { kicker: '08 / REVIEW 2', title: '复盘 2 · 查询效率与资源要一起看', body: '查询 DN 少，可能更快；成本低，可能更省。把查询、搬运、成本和负载放在一起，才能判断整体效果。', note: '继续前可以换一个方案再比较。' },
   { kicker: '09 / TRAINING 3', title: '训练 3 · 大型持续写入的综合判断', body: '先看分布是否集中，决定要多重视 DN 余量；再看主要访问是否明确，决定要多重视查询 DN；最后结合规模和增长，检查复制与搬运的成本。', note: '查询节点少还不够；大数据的额外代价也要算进去。' },
   { kicker: '10 / REVIEW 3', title: '复盘 3 · 建立自己的检查顺序', body: '每波都按同一套顺序：看任务卡的分布和主要访问、读参数、判断优先级、选方案、确认、看结果。正式模式没确认的波次按 0 分。', note: '这套顺序比记住某个固定答案更重要。' },
-  { kicker: '11 / RANKED READY', title: '正式模式还会发生什么', body: 'Ranked 固定 90 秒、14 波，负载、查询压力、资源和副本状态会继承。预测可查看趋势但本波评级封顶 GOOD；撤回扣 50 分并清空 Combo；每波 15 秒，未确认直接记 0 分。', note: '准备好后返回首页，再由你决定什么时候开始正式挑战。' },
+  { kicker: '11 / RANKED READY', title: '正式模式还会发生什么', body: 'Ranked 固定 90 秒、14 波，负载、查询压力、资源和副本状态会继承。预测可查看趋势但本波评级封顶 GOOD；撤回扣 50 分并清空 Combo；每波 20 秒，未确认直接记 0 分。', note: '准备好后返回首页，再由你决定什么时候开始正式挑战。' },
 ]
 
 const tutorialTrainingGoals = [
@@ -112,6 +122,8 @@ function ModernConsole(p: GamePageProps & { displayLoads: GameState['dnLoads'] }
   }, [now, nextWaveAt, ranked, result, s.waveIndex, p.onRankedNext])
   const wave = ranked ? getRankedWave(s.waveIndex, s.dailySeed) : undefined
   const tutorialWave = tutorialWaves[s.tutorialWaveIndex] ?? tutorialWaves[0]
+  const rankedOptions = useMemo(() => wave ? shuffleOptions(wave.options) : [], [s.dailySeed, s.waveIndex, wave?.id])
+  const tutorialOptions = useMemo(() => shuffleOptions(tutorialWave.options), [s.tutorialWaveIndex, tutorialWave.id])
   const latest = s.waveResults[s.waveResults.length - 1]
   const seconds = Math.min(90, Math.floor((now - s.gameStartedAt) / 1000))
   const remaining = Math.max(0, 90 - seconds)
@@ -120,9 +132,8 @@ function ModernConsole(p: GamePageProps & { displayLoads: GameState['dnLoads'] }
   const projected = wave?.options.map((option) => ({
     ...option,
     loads: previewRankedLoads(s, wave, option),
-    fatal: Math.max(...previewRankedLoads(s, wave, option)) >= 100,
   })) ?? []
-  const tutorialProjected = tutorialWave.options.map((option) => ({ ...option, loads: previewRankedLoads(s, tutorialWave, option) }))
+  const tutorialProjected = tutorialOptions.map((option) => ({ ...option, loads: previewRankedLoads(s, tutorialWave, option) }))
   const tutorialBestOption = tutorialWave.options.find((option) => option.id === tutorialWave.defaultStrategy) ?? tutorialWave.options[0]
   const statusLabel = s.systemStatus === 'OVERLOAD' ? '过载' : s.systemStatus === 'HIGH LOAD' ? '较高' : '稳定'
   const tutorialChoosing = s.mode === 'tutorial' && [5, 7, 9].includes(s.tutorialStep)
@@ -165,11 +176,11 @@ function ModernConsole(p: GamePageProps & { displayLoads: GameState['dnLoads'] }
     </section> : <section className="modern-controls ranked-controls">
       <div className="modern-mission-copy"><span>{wave?.finalRush ? `FINAL RUSH · WAVE ${wave.id}` : `WAVE ${String(wave?.id ?? 0).padStart(2, '0')} · ${wave?.publicData ? 'PUBLIC DATA' : 'DATA FLOW'}`}</span><h2>{result ? `Wave ${latest?.wave} · ${latest?.grade}` : wave?.title}</h2>{result ? <p>{latest?.note}</p> : <p><b>{wave?.dataName}</b> · 规模 {Array.from({ length: 5 }, (_, index) => index < (wave?.size ?? 1) ? '★' : '☆').join('')}<br />分布：{wave?.distribution}<br />高频访问：{wave?.access}{wave?.publicData ? ' · 公共数据' : ''}</p>}<small>评估看数据量、热点分布、查询是否对齐，以及当前节点余量；规模、分布和访问方式共同决定难度。</small><small className="ranked-death-rule">死亡条件：任一 DN 负载达到 100%，立即结束本局。</small></div>
       <div className="ranked-decision-desk">
-        {!result && <div className="decision-clock"><span>本波决策窗口</span><strong>{decisionRemaining.toFixed(1)}s</strong><i><b style={{ transform: `scaleX(${Math.min(1, decisionRemaining / 15)})` }} /></i><small>未确认策略：本波直接 0 分</small></div>}
+        {!result && <div className="decision-clock"><span>本波决策窗口</span><strong>{decisionRemaining.toFixed(1)}s</strong><i><b style={{ transform: `scaleX(${Math.min(1, decisionRemaining / (rankedDecisionWindowMs / 1000))})` }} /></i><small>未确认策略：本波直接 0 分</small></div>}
         {!result && <button className="decision-guide-toggle" aria-expanded={showDecisionGuide} aria-controls="decision-data-guide" onClick={() => setShowDecisionGuide((open) => !open)}>{showDecisionGuide ? '收起决策数据说明' : '？ 决策数据说明'}</button>}
         {!result && showDecisionGuide && <DecisionDataGuide />}
-        {result ? <div className="wave-result-card"><div><strong>{latest?.score.total}/100</strong><span>{latest?.grade} · Combo {latest?.combo > 0 ? `×${latest?.multiplier.toFixed(2)}` : '已清零'}</span></div><div className="result-mini-grid"><span>负载 {latest?.score.loadBalance}/40</span><span>查询 {latest?.score.queryEfficiency}/30</span><span>资源 {latest?.score.resourceCost}/20</span><span>速度 {latest?.score.decisionSpeed}/10</span></div></div> : <div className="ranked-options">{wave?.options.map((option) => { const preview = projected.find((item) => item.id === option.id); return <button key={option.id} aria-pressed={selected === option.id} className={`${selected === option.id ? 'selected ' : ''}${preview?.fatal ? 'is-fatal' : ''}`} onClick={() => setSelected(option.id)}><strong>{option.label}</strong><small>{option.detail}</small><em className={preview?.fatal ? 'is-fatal' : ''}>查询 {option.queryNodes} DN · 搬运 {option.crossNodeMovement}% · 成本 {option.resourceCost}{preview?.fatal ? ' · 达到 100% 即死亡' : ''}</em></button> })}</div>}
-        {!result && showPrediction && <div className="prediction-panel"><header><b>预测视图 · 本波最高评级为 GOOD</b><span>剩余 {s.predictionUsesRemaining} 次</span></header>{projected.map((item) => <div key={item.id}><strong>{item.label}</strong><span>负载 {item.loads.join(' / ')}%</span><span>查询 {item.queryNodes} DN</span><span>搬运 {item.crossNodeMovement}%</span><span className={item.fatal ? 'is-fatal' : ''}>{item.fatal ? '达到 100% · 死亡' : `成本 ${item.resourceCost}`}</span></div>)}</div>}
+        {result ? <div className="wave-result-card"><div><strong>{latest?.score.total}/100</strong><span>{latest?.grade} · Combo {latest?.combo > 0 ? `×${latest?.multiplier.toFixed(2)}` : '已清零'}</span></div><div className="result-mini-grid"><span>负载 {latest?.score.loadBalance}/40</span><span>查询 {latest?.score.queryEfficiency}/30</span><span>资源 {latest?.score.resourceCost}/20</span><span>速度 {latest?.score.decisionSpeed}/10</span></div></div> : <div className="ranked-options">{rankedOptions.map((option) => <button key={option.id} aria-pressed={selected === option.id} className={selected === option.id ? 'selected' : ''} onClick={() => setSelected(option.id)}><strong>{option.label}</strong><small>{option.detail}</small><em>查询 {option.queryNodes} DN · 搬运 {option.crossNodeMovement}% · 成本 {option.resourceCost}</em></button>)}</div>}
+        {!result && showPrediction && <div className="prediction-panel"><header><b>预测视图 · 本波最高评级为 GOOD</b><span>剩余 {s.predictionUsesRemaining} 次</span></header>{rankedOptions.map((option) => { const item = projected.find((projectedOption) => projectedOption.id === option.id); return <div key={option.id}><strong>{option.label}</strong><span>负载 {item?.loads.join(' / ') ?? '—'}%</span><span>查询 {option.queryNodes} DN</span><span>搬运 {option.crossNodeMovement}%</span><span>成本 {option.resourceCost}</span></div> })}</div>}
         <div className="modern-action-row">{result && s.waveIndex < 13 && <button className="secondary-action" disabled={!nextWaveReady} onClick={() => p.onRankedNext?.()}>{nextWaveReady ? '下一波 →' : `下一波将在 ${nextWaveWait}s 到达`}</button>}{result && s.undoUsesRemaining > 0 && <button className="strategy-retry" onClick={() => p.onRankedUndo?.()}>撤回最近决策 · -50</button>}{!result && s.predictionUsesRemaining > 0 && !showPrediction && <button className="secondary-action" onClick={() => { p.onRankedPrediction?.(); setShowPrediction(true) }}>预测 ×{s.predictionUsesRemaining}</button>}{!result && <button className="confirm-dispatch" disabled={!selected} onClick={() => p.onRankedSubmit?.(selected as RankedStrategy, Date.now() - s.waveStartedAt)}>{selected ? '确认调度' : '选择一个策略'}</button>}{result && s.waveIndex === 13 && <button className="confirm-dispatch" onClick={() => p.onRankedFinish?.()}>查看本局成绩 →</button>}</div>
         <p className="operation-note">{result ? '读完本波评分后再继续。状态、复制和资源不会在下一波重置。' : '同时看负载、查询触达和跨节点成本，再结合任务卡做选择。'}</p>
       </div>

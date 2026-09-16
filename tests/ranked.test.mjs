@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { GameEngine, comboMultiplier } from '../src/game/GameEngine.ts'
 import { createRankedState, createTutorialState } from '../src/game/GameState.ts'
 import { EventTracker } from '../src/game/EventTracker.ts'
-import { getRankedWaveSet, rankedDifficultyQuota, rankedWaveArrivalSeconds, rankedWaveLibrary } from '../src/config/rankedWaves.ts'
+import { getRankedWaveSet, rankedDecisionWindowMs, rankedDifficultyQuota, rankedWaveArrivalSeconds, rankedWaveLibrary } from '../src/config/rankedWaves.ts'
 import { ScoreEngine } from '../src/game/ScoreEngine.ts'
 
 const dailyWaves = getRankedWaveSet('TD-TEST-SEED')
@@ -14,6 +14,7 @@ assert.deepEqual(dailyWaves.slice(-3).map((wave) => wave.finalRush), [true, true
 assert.deepEqual(dailyWaves.map((wave) => wave.templateId), sameDailyWaves.map((wave) => wave.templateId))
 assert.notDeepEqual(dailyWaves.map((wave) => wave.templateId), otherDailyWaves.map((wave) => wave.templateId))
 assert.equal(new Set(dailyWaves.map((wave) => wave.templateId)).size, 14)
+assert.equal(rankedDecisionWindowMs, 20000)
 for (const [difficulty, count] of Object.entries(rankedDifficultyQuota)) {
   assert.equal(dailyWaves.filter((wave) => wave.difficulty === difficulty).length, count)
 }
@@ -56,7 +57,7 @@ assert.equal(prediction.waveResults.length, 0)
 assert.equal(prediction.totalScore, Math.max(0, scoreBeforeUndo - 50))
 
 let timeout = engine.start(createRankedState('TD-TIMEOUT'), '超时测试')
-timeout = engine.submitRankedWave(timeout, 'not-a-strategy', 4001)
+timeout = engine.submitRankedWave(timeout, 'not-a-strategy', rankedDecisionWindowMs + 1)
 assert.equal(timeout.waveResults[0].timedOut, true)
 assert.equal(timeout.waveResults[0].score.decisionSpeed, 0)
 assert.equal(timeout.waveResults[0].score.total, 0)

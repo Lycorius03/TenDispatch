@@ -72,7 +72,7 @@ export class GameEngine {
         waveStartedAt: now,
         cargoMode: 'idle',
         deathReason: undefined,
-        npcMessage: 'RANKED 线路已开启。先扫一眼任务卡和当前负载，再在 15 秒内决定这一波怎么放。',
+        npcMessage: 'RANKED 线路已开启。先扫一眼任务卡和当前负载，再在 20 秒内决定这一波怎么放。',
       }
     }
     if (mode === 'tutorial') {
@@ -186,7 +186,7 @@ export class GameEngine {
         ...state,
         tutorialStep: 11,
         cargoMode: 'idle',
-        npcMessage: '三波训练完成。进入正式模式后仍按同一顺序操作：看任务卡的分布和主要访问、读三个参数、选方案、确认、看结果。每波有 15 秒，没确认按 0 分处理。',
+        npcMessage: '三波训练完成。进入正式模式后仍按同一顺序操作：看任务卡的分布和主要访问、读三个参数、选方案、确认、看结果。每波有 20 秒，没确认按 0 分处理。',
       }
     }
     if (state.tutorialStep === 11) {
@@ -344,7 +344,7 @@ export class GameEngine {
       queryNodes: selected.queryNodes,
       crossNodeMovement,
       loads,
-        note: timedOut ? `本波未在 15 秒内确认策略，直接记 0 分；系统仅为保持线路运转而采用默认策略：${wave.options.find((option) => option.id === wave.defaultStrategy)?.label ?? selected.label}` : selected.note,
+        note: timedOut ? `本波未在 20 秒内确认策略，直接记 0 分；系统仅为保持线路运转而采用默认策略：${wave.options.find((option) => option.id === wave.defaultStrategy)?.label ?? selected.label}` : selected.note,
       predictionUsed: state.predictionUsedThisWave,
     }
     const nextPoor = state.poorCount + Number(grade === 'POOR')

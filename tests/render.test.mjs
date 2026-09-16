@@ -4,6 +4,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { GamePage } from '../src/pages/Game/GamePage.tsx'
 import { HomePage } from '../src/pages/Home/HomePage.tsx'
 import { createInitialState, createRankedState, createTutorialState } from '../src/game/GameState.ts'
+import { shuffleOptions } from '../src/pages/Game/GamePage.tsx'
 globalThis.innerWidth=1920
 globalThis.innerHeight=1080
 globalThis.matchMedia=()=>({matches:false})
@@ -61,6 +62,7 @@ assert.ok(tutorialIntro.includes('animateMotion'))
 const tutorialReady=renderToStaticMarkup(React.createElement(GamePage,{...props,state:{...createTutorialState(),screen:'game',tutorialStep:11,tutorialWaveCompleted:true}}))
 assert.ok(tutorialReady.includes('正式模式还会发生什么'))
 assert.ok(tutorialReady.includes('未确认直接记 0 分'))
+assert.ok(tutorialReady.includes('每波 20 秒'))
 assert.ok(!tutorialReady.includes('死亡条件'))
 for (let tutorialStep = 1; tutorialStep <= 11; tutorialStep += 1) {
  const tutorialWaveIndex = tutorialStep >= 9 ? 2 : tutorialStep >= 7 ? 1 : 0
@@ -71,6 +73,7 @@ const dead=renderToStaticMarkup(React.createElement(GamePage,{...props,state:{..
 assert.ok(dead.includes('节点负载已满，调度中止'))
 assert.ok(dead.includes('DEAD AT WAVE'))
 assert.ok(dead.includes('返回模式选择'))
+assert.deepEqual(shuffleOptions(['first', 'second', 'third'], () => 0), ['second', 'third', 'first'])
 console.log('SSR: 12 phases render; each has <=4 primary controls, 3 DN; both desktop scale factors verified; nickname required.')
 const sharding=renderToStaticMarkup(React.createElement(GamePage,{...props,state:{...initial,phase:'sharding',screen:'game'}}))
 assert.ok(sharding.includes('记录按编号分到三个仓库'))
