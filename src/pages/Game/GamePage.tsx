@@ -194,7 +194,7 @@ function ModernConsole(p: GamePageProps & { displayLoads: GameState['dnLoads'] }
     </section> : dead ? <section className="modern-controls ranked-controls ranked-death-controls">
       <div className="modern-mission-copy"><span>GAME OVER · NODE CAPACITY</span><h2>节点负载已满，调度中止</h2><p>{s.deathReason ?? '任一 DN 达到 100% 负载，极速模式立即结束本局。'}</p><small>本局不会再进入下一波；记住先看余量，再确认高压策略。</small></div><div className="ranked-death-card"><div className="ranked-death-readout"><span>DEAD AT WAVE</span><strong>{String(s.waveIndex + 1).padStart(2, '0')} / 14</strong></div><div className="ranked-death-loads">{s.dnLoads.map((load, index) => <span key={index} className={load >= 100 ? 'is-fatal' : ''}>DN-{index + 1} <b>{load}%</b></span>)}</div><button className="confirm-dispatch" onClick={() => p.onRankedGameOver?.()}>返回模式选择 →</button></div>
     </section> : <section className="modern-controls ranked-controls">
-      <div className="modern-mission-copy"><span>{wave?.finalRush ? `FINAL RUSH · WAVE ${wave.id}` : `WAVE ${String(wave?.id ?? 0).padStart(2, '0')} · ${wave?.publicData ? 'PUBLIC DATA' : 'DATA FLOW'}`}</span><h2>{result ? `Wave ${latest?.wave} · ${latest?.grade}` : wave?.title}</h2>{result ? <p>{latest?.note}</p> : <p><b>{wave?.dataName}</b> · 规模 {Array.from({ length: 5 }, (_, index) => index < (wave?.size ?? 1) ? '★' : '☆').join('')}<br />数据分布：{wave?.distribution}<br />高频访问：{wave?.access}{wave?.publicData ? ' · 公共数据' : ''}</p>}<small>先对照高频访问和数据分布，再检查图上的当前 DN 负载。</small><small className="ranked-death-rule">死亡条件：任一 DN 负载达到 100%，立即结束本局。</small></div>
+      <div className="modern-mission-copy"><span>{wave?.finalRush ? `FINAL RUSH · WAVE ${wave.id}` : `WAVE ${String(wave?.id ?? 0).padStart(2, '0')} · ${wave?.publicData ? 'PUBLIC DATA' : 'DATA FLOW'}`}</span><h2>{result ? `Wave ${latest?.wave} · ${latest?.grade}` : wave?.title}</h2>{result ? <p>{latest?.note}</p> : <p><b>{wave?.dataName}</b> · 规模 {Array.from({ length: 5 }, (_, index) => index < (wave?.size ?? 1) ? '★' : '☆').join('')}<br />数据分布：{wave?.distribution}<br />高频访问：{wave?.access}{wave?.publicData ? ' · 公共数据' : ''}</p>}<small>本局目标：撑完 14 波后，让三个 DN 都保持低负载。先对照任务线索，再比较查询、搬运、成本，最后检查最高负载。</small><small className="ranked-death-rule">死亡条件：任一 DN 负载达到 100%，立即结束本局。</small></div>
       <div className="ranked-decision-desk">
         {!result && <div className={`decision-clock ${showDecisionGuide ? 'is-paused' : ''}`}><span>本波决策窗口</span><strong>{decisionRemaining.toFixed(1)}s</strong><i><b style={{ transform: `scaleX(${Math.min(1, decisionRemaining / (rankedDecisionWindowMs / 1000))})` }} /></i><small>{showDecisionGuide ? '判断方法展开中：本波计时已暂停' : '未确认策略：本波直接 0 分'}</small></div>}
         {!result && <button className="decision-guide-toggle" aria-expanded={showDecisionGuide} aria-controls="decision-data-guide" onClick={toggleDecisionGuide}>{showDecisionGuide ? '关闭判断框架 · 继续计时' : '？ 查看通用判断框架（暂停计时）'}</button>}
@@ -232,11 +232,11 @@ function TutorialOptionPreview({ wave }: { wave: RankedWave }) {
 
 export function DecisionDataGuide() {
   return <aside className="decision-data-guide" id="decision-data-guide" aria-label="判断方法">
-    <header><b>通用判断框架</b><span>本题计时已暂停</span></header>
-    <div><strong>① 看访问模式</strong><p>在任务卡的“高频访问”里辨认：这是持续写入、按条件查询，还是多处反复读取？选择最贴近使用方式的方案。</p></div>
-    <div><strong>② 看分布风险</strong><p>在任务卡的“数据分布”里判断：数据会自然摊开，还是容易集中？避免让新的方案把压力重新聚到一处。</p></div>
-    <div><strong>③ 看节点余量</strong><p>回到上方负载图，优先避开当前最忙的 DN，并为后续波次保留余量。</p></div>
-    <footer>暂停期间不能选择或确认策略。每题都按“访问模式 → 分布风险 → 节点余量”检查；任务内容会变，检查顺序不变。</footer>
+    <header><b>目标：撑完 14 波，三个 DN 都别接近满载</b><span>本题计时已暂停</span></header>
+    <div><strong>① 先淘汰不对路的方案</strong><p>任务卡的“高频访问”告诉你数据要怎样被找到；“数据分布”告诉你会不会集中。方案和这两点对不上，通常会让查询绕远或把压力堆到一处。</p></div>
+    <div><strong>② 再比较选项卡的三行数字</strong><p><b>查询 1 DN</b>：一次只找一个节点；<b>查询 3 DN</b>：三个节点都要参与。只有任务确实需要多处读取时才接受 3 DN。<br /><b>搬运低</b>：少跨节点传数据；<b>成本低</b>：少占资源。条件相近时，优先选数字更低的方案。</p></div>
+    <div><strong>③ 最后守住最高负载</strong><p>看上方三个 DN：谁的百分比最高，谁就最危险。不要再选会制造热点、集中访问或重型复制的方案去压它；宁可多一点小成本，也别让一个 DN 先冲高。</p></div>
+    <footer>暂停期间不能选择或确认策略。固定顺序：任务是否对路 → 查询、搬运、成本谁更省 → 最高负载能不能压住。每一波都给后面的波次留余量。</footer>
   </aside>
 }
 
