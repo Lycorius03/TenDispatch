@@ -5,6 +5,7 @@ import { GamePage } from '../src/pages/Game/GamePage.tsx'
 import { HomePage } from '../src/pages/Home/HomePage.tsx'
 import { createInitialState, createRankedState, createTutorialState } from '../src/game/GameState.ts'
 import { shuffleOptions } from '../src/pages/Game/GamePage.tsx'
+import { getRankedWave } from '../src/config/rankedWaves.ts'
 globalThis.innerWidth=1920
 globalThis.innerHeight=1080
 globalThis.matchMedia=()=>({matches:false})
@@ -73,7 +74,16 @@ const dead=renderToStaticMarkup(React.createElement(GamePage,{...props,state:{..
 assert.ok(dead.includes('节点负载已满，调度中止'))
 assert.ok(dead.includes('DEAD AT WAVE'))
 assert.ok(dead.includes('返回模式选择'))
-assert.deepEqual(shuffleOptions(['first', 'second', 'third'], () => 0), ['second', 'third', 'first'])
+const rankedChoice=renderToStaticMarkup(React.createElement(GamePage,{...props,state:{...createRankedState('TD-CARD-AUDIT'),screen:'game',dnLoads:[99,99,99]}}))
+const rankedOptionCards=rankedChoice.split('class="ranked-options"')[1].split('class="modern-action-row"')[0]
+assert.ok(!rankedOptionCards.includes('is-fatal'))
+assert.ok(!rankedOptionCards.includes('死亡'))
+assert.notEqual(rankedOptionCards.match(/<strong>([^<]+)<\/strong>/)?.[1],getRankedWave(0,'TD-CARD-AUDIT').options[0].label)
+const visiblyShuffled = shuffleOptions(['best', 'second', 'third'], () => 0.999)
+assert.notDeepEqual(visiblyShuffled, ['best', 'second', 'third'])
+assert.notEqual(visiblyShuffled[0], 'best')
+const rankedResult=renderToStaticMarkup(React.createElement(GamePage,{...props,state:{...createRankedState('TD-WAIT'),screen:'game',phase:'ranked-result',waveIndex:0}}))
+assert.ok(rankedResult.includes('下一波将在 3s 到达'))
 console.log('SSR: 12 phases render; each has <=4 primary controls, 3 DN; both desktop scale factors verified; nickname required.')
 const sharding=renderToStaticMarkup(React.createElement(GamePage,{...props,state:{...initial,phase:'sharding',screen:'game'}}))
 assert.ok(sharding.includes('记录按编号分到三个仓库'))

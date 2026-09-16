@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type CSSProperties, type MouseEvent as ReactMouseEvent } from 'react'
-import { getRankedWave, rankedDecisionWindowMs, rankedWaveArrivalSeconds, tutorialWaves } from '../../config/rankedWaves'
+import { getRankedWave, rankedDecisionWindowMs, rankedNextWaveDelayMs, tutorialWaves } from '../../config/rankedWaves'
 import type { DispatchStrategy, FinalChoices, GameState, RankedStrategy, ReplicationStrategy } from '../../game/GameState'
 import { LogisticsCenter } from '../../components/LogisticsCenter/LogisticsCenter'
 import { NPCChannel } from '../../components/NPCChannel/NPCChannel'
@@ -41,6 +41,12 @@ export const shuffleOptions = <T,>(options: readonly T[], random: () => number =
   for (let index = shuffled.length - 1; index > 0; index -= 1) {
     const swapIndex = Math.floor(random() * (index + 1))
     ;[shuffled[index], shuffled[swapIndex]] = [shuffled[swapIndex], shuffled[index]]
+  }
+  // Wave data lists the preferred strategy first. Force that source-first item
+  // away from the first card so every question is visibly reordered.
+  if (shuffled.length > 1 && shuffled[0] === options[0]) {
+    const swapIndex = 1 + Math.floor(random() * (shuffled.length - 1))
+    ;[shuffled[0], shuffled[swapIndex]] = [shuffled[swapIndex], shuffled[0]]
   }
   return shuffled
 }
@@ -102,6 +108,7 @@ function ModernConsole(p: GamePageProps & { displayLoads: GameState['dnLoads'] }
   const [showPrediction, setShowPrediction] = useState(false)
   const [showDecisionGuide, setShowDecisionGuide] = useState(false)
   const [now, setNow] = useState(Date.now)
+  const [resultStartedAt] = useState(Date.now)
   const [paused, setPaused] = useState(false)
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 100)
@@ -114,7 +121,7 @@ function ModernConsole(p: GamePageProps & { displayLoads: GameState['dnLoads'] }
   const ranked = s.mode === 'ranked'
   const result = ranked && s.phase === 'ranked-result'
   const dead = ranked && s.phase === 'ranked-dead'
-  const nextWaveAt = ranked && result && s.waveIndex < 13 ? s.gameStartedAt + rankedWaveArrivalSeconds[s.waveIndex + 1] * 1000 : 0
+  const nextWaveAt = ranked && result && s.waveIndex < 13 ? resultStartedAt + rankedNextWaveDelayMs : 0
   const nextWaveReady = nextWaveAt === 0 || now >= nextWaveAt
   const nextWaveWait = Math.max(0, Math.ceil((nextWaveAt - now) / 1000))
   useEffect(() => {

@@ -438,7 +438,7 @@ export const rankedDifficultyQuota = {
 export const rankedWaveCount = Object.values(rankedDifficultyQuota).reduce((sum, value) => sum + value, 0)
 export const rankedDurationSeconds = 90
 export const rankedDecisionWindowMs = 20000
-export const rankedWaveArrivalSeconds = [0, 6, 12, 18, 24, 30, 36, 42, 48, 54, 60, 68, 77, 86] as const
+export const rankedNextWaveDelayMs = 3000
 
 const defaultRankedSeed = 'TD-DEFAULT'
 

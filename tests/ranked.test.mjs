@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { GameEngine, comboMultiplier } from '../src/game/GameEngine.ts'
 import { createRankedState, createTutorialState } from '../src/game/GameState.ts'
 import { EventTracker } from '../src/game/EventTracker.ts'
-import { getRankedWaveSet, rankedDecisionWindowMs, rankedDifficultyQuota, rankedWaveArrivalSeconds, rankedWaveLibrary } from '../src/config/rankedWaves.ts'
+import { getRankedWaveSet, rankedDecisionWindowMs, rankedDifficultyQuota, rankedNextWaveDelayMs, rankedWaveLibrary } from '../src/config/rankedWaves.ts'
 import { ScoreEngine } from '../src/game/ScoreEngine.ts'
 
 const dailyWaves = getRankedWaveSet('TD-TEST-SEED')
@@ -15,11 +15,10 @@ assert.deepEqual(dailyWaves.map((wave) => wave.templateId), sameDailyWaves.map((
 assert.notDeepEqual(dailyWaves.map((wave) => wave.templateId), otherDailyWaves.map((wave) => wave.templateId))
 assert.equal(new Set(dailyWaves.map((wave) => wave.templateId)).size, 14)
 assert.equal(rankedDecisionWindowMs, 20000)
+assert.equal(rankedNextWaveDelayMs, 3000)
 for (const [difficulty, count] of Object.entries(rankedDifficultyQuota)) {
   assert.equal(dailyWaves.filter((wave) => wave.difficulty === difficulty).length, count)
 }
-const arrivalGaps = rankedWaveArrivalSeconds.slice(1).map((second, index) => second - rankedWaveArrivalSeconds[index])
-assert.ok(arrivalGaps.reduce((sum, gap) => sum + gap, 0) / arrivalGaps.length >= 5 && arrivalGaps.reduce((sum, gap) => sum + gap, 0) / arrivalGaps.length <= 7)
 assert.deepEqual([1, 2, 3, 4, 5].map(comboMultiplier), [1, 1.1, 1.2, 1.3, 1.5])
 
 const engine = new GameEngine(new EventTracker())
@@ -29,6 +28,12 @@ const initialLoads = state.dnLoads
 
 for (const [index, wave] of dailyWaves.entries()) {
   const defaultOption = wave.options.find((option) => option.id === wave.defaultStrategy)
+  for (const alternative of wave.options.filter((option) => option.id !== wave.defaultStrategy)) {
+    const alternativeResult = engine.submitRankedWave(state, alternative.id, 1000)
+    if (alternativeResult.phase !== 'ranked-dead') {
+      assert.ok(alternativeResult.waveResults.at(-1).score.total < 75, `wave ${index + 1}: ${alternative.id}`)
+    }
+  }
   state = engine.submitRankedWave(state, defaultOption.id, 1000)
   assert.equal(state.waveResults.at(-1).wave, index + 1)
   assert.equal(state.waveResults.at(-1).score.decisionSpeed, 10)

@@ -14,12 +14,16 @@ export const gradeForWaveScore = (score: number): WaveGrade => score >= 90 ? 'PE
 
 const scoreSpeed = (decisionMs: number) => decisionMs <= 1500 ? 10 : decisionMs <= 2500 ? 8 : decisionMs <= 3500 ? 5 : decisionMs <= 4000 ? 2 : 0
 
-const calculateWaveScore = (loads: [number, number, number], option: RankedOption, decisionMs: number, predictionUsed: boolean): WaveScore => {
+const calculateWaveScore = (loads: [number, number, number], option: RankedOption, decisionMs: number, predictionUsed: boolean, preferredStrategy: boolean): WaveScore => {
   const peak = Math.max(...loads)
   const spread = peak - Math.min(...loads)
   const overloadPenalty = peak >= 95 ? 17 : 0
   const loadBalance = clamp(Math.round(40 - Math.max(0, peak - 78) * 1.15 - spread * 0.16 - overloadPenalty), 0, 40)
-  const queryEfficiency = option.queryNodes === 1 ? 30 : option.queryNodes === 2 ? 20 : 8
+  const baseQueryEfficiency = option.queryNodes === 1 ? 30 : option.queryNodes === 2 ? 20 : 8
+  // A short query path is only valuable when the strategy actually matches
+  // the wave's access pattern. Non-preferred strategies cannot reach GOOD by
+  // accidentally combining cheap metrics that miss the task itself.
+  const queryEfficiency = preferredStrategy ? baseQueryEfficiency : Math.min(baseQueryEfficiency, 4)
   const resourceCost = clamp(Math.round(20 - option.resourceCost * 0.25 - option.crossNodeMovement * 0.08), 0, 20)
   const decisionSpeed = scoreSpeed(decisionMs)
   const total = clamp(loadBalance + queryEfficiency + resourceCost + decisionSpeed, 0, predictionUsed ? 89 : 100)
@@ -321,7 +325,7 @@ export class GameEngine {
     // system moving, but it is not a player decision and therefore earns no points.
     const score = timedOut
       ? { loadBalance: 0, queryEfficiency: 0, resourceCost: 0, decisionSpeed: 0, total: 0 }
-      : calculateWaveScore(loads, selected, actualDecisionMs, state.predictionUsedThisWave)
+      : calculateWaveScore(loads, selected, actualDecisionMs, state.predictionUsedThisWave, selected.id === wave.defaultStrategy)
     const grade = gradeForWaveScore(score.total)
     const combo = grade === 'PERFECT' || grade === 'GOOD' ? state.combo + 1 : 0
     const multiplier = comboMultiplier(combo)
