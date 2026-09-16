@@ -651,6 +651,7 @@ button:disabled { cursor:not-allowed; opacity:.45; }
 .decision-guide-toggle { min-height: 42px; margin: 0 0 9px; padding: 0 14px; color: #cce4ee; background: #0d2637; border: 1px solid #315572; font-size: 13px; font-weight: 700; }
 .decision-guide-toggle:hover { color: #effcff; border-color: var(--cyan); background: #15364e; }
 .decision-data-guide { margin: 0 0 10px; padding: 15px 16px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; background: #102b3e; border: 1px solid #4b7e94; }
+.decision-data-guide--simple { grid-template-columns: 1fr; }
 .decision-data-guide header, .decision-data-guide footer { grid-column: 1 / -1; display: flex; justify-content: space-between; gap: 12px; }
 .decision-data-guide header b { color: var(--cyan-bright); font: 600 17px/1.1 var(--display); }
 .decision-data-guide header span { color: #9fc7d8; font-size: 13px; }
