@@ -197,8 +197,8 @@ function ModernConsole(p: GamePageProps & { displayLoads: GameState['dnLoads'] }
       <div className="modern-mission-copy"><span>{wave?.finalRush ? `FINAL RUSH · WAVE ${wave.id}` : `WAVE ${String(wave?.id ?? 0).padStart(2, '0')} · ${wave?.publicData ? 'PUBLIC DATA' : 'DATA FLOW'}`}</span><h2>{result ? `Wave ${latest?.wave} · ${latest?.grade}` : wave?.title}</h2>{result ? <p>{latest?.note}</p> : <p><b>{wave?.dataName}</b> · 规模 {Array.from({ length: 5 }, (_, index) => index < (wave?.size ?? 1) ? '★' : '☆').join('')}<br />数据分布：{wave?.distribution}<br />高频访问：{wave?.access}{wave?.publicData ? ' · 公共数据' : ''}</p>}<small>先对照高频访问和数据分布，再检查图上的当前 DN 负载。</small><small className="ranked-death-rule">死亡条件：任一 DN 负载达到 100%，立即结束本局。</small></div>
       <div className="ranked-decision-desk">
         {!result && <div className={`decision-clock ${showDecisionGuide ? 'is-paused' : ''}`}><span>本波决策窗口</span><strong>{decisionRemaining.toFixed(1)}s</strong><i><b style={{ transform: `scaleX(${Math.min(1, decisionRemaining / (rankedDecisionWindowMs / 1000))})` }} /></i><small>{showDecisionGuide ? '判断方法展开中：本波计时已暂停' : '未确认策略：本波直接 0 分'}</small></div>}
-        {!result && <button className="decision-guide-toggle" aria-expanded={showDecisionGuide} aria-controls="decision-data-guide" onClick={toggleDecisionGuide}>{showDecisionGuide ? '关闭判断方法 · 继续计时' : '？ 查看判断方法（暂停计时）'}</button>}
-        {!result && showDecisionGuide && <DecisionDataGuide wave={wave} loads={s.dnLoads} />}
+        {!result && <button className="decision-guide-toggle" aria-expanded={showDecisionGuide} aria-controls="decision-data-guide" onClick={toggleDecisionGuide}>{showDecisionGuide ? '关闭判断框架 · 继续计时' : '？ 查看通用判断框架（暂停计时）'}</button>}
+        {!result && showDecisionGuide && <DecisionDataGuide />}
         {result ? <div className="wave-result-card"><div><strong>{latest?.score.total}/100</strong><span>{latest?.grade} · Combo {latest?.combo > 0 ? `×${latest?.multiplier.toFixed(2)}` : '已清零'}</span></div><div className="result-mini-grid"><span>负载 {latest?.score.loadBalance}/40</span><span>查询 {latest?.score.queryEfficiency}/30</span><span>资源 {latest?.score.resourceCost}/20</span><span>速度 {latest?.score.decisionSpeed}/10</span></div></div> : <div className="ranked-options" aria-describedby={showDecisionGuide ? 'decision-data-guide' : undefined}>{rankedOptions.map((option) => <button key={option.id} aria-pressed={selected === option.id} className={selected === option.id ? 'selected' : ''} disabled={showDecisionGuide} title={showDecisionGuide ? '判断方法展开时不能选择策略' : undefined} onClick={() => { if (!showDecisionGuide) setSelected(option.id) }}><strong>{option.label}</strong><small>{option.detail}</small><em>查询 {option.queryNodes} DN · 搬运 {option.crossNodeMovement}% · 成本 {option.resourceCost}</em></button>)}</div>}
         {!result && showPrediction && <div className="prediction-panel"><header><b>预测视图 · 本波最高评级为 GOOD</b><span>剩余 {s.predictionUsesRemaining} 次</span></header>{rankedOptions.map((option) => { const item = projected.find((projectedOption) => projectedOption.id === option.id); return <div key={option.id}><strong>{option.label}</strong><span>负载 {item?.loads.join(' / ') ?? '—'}%</span><span>查询 {option.queryNodes} DN</span><span>搬运 {option.crossNodeMovement}%</span><span>成本 {option.resourceCost}</span></div> })}</div>}
         <div className="modern-action-row">{result && s.waveIndex < 13 && <button className="secondary-action" disabled={!nextWaveReady} onClick={() => p.onRankedNext?.()}>{nextWaveReady ? '下一波 →' : `下一波将在 ${nextWaveWait}s 到达`}</button>}{result && s.undoUsesRemaining > 0 && <button className="strategy-retry" onClick={() => p.onRankedUndo?.()}>撤回最近决策 · -50</button>}{!result && s.predictionUsesRemaining > 0 && !showPrediction && <button className="secondary-action" disabled={showDecisionGuide} title={showDecisionGuide ? '判断方法展开时不能使用预测' : undefined} onClick={() => { if (!showDecisionGuide) { p.onRankedPrediction?.(); setShowPrediction(true) } }}>预测 ×{s.predictionUsesRemaining}</button>}{!result && <button className="confirm-dispatch" disabled={showDecisionGuide || !selected} title={showDecisionGuide ? '关闭判断方法后才能确认调度' : undefined} onClick={() => { if (!showDecisionGuide && selected) p.onRankedSubmit?.(selected as RankedStrategy, getDecisionElapsedMs(s.waveStartedAt, Date.now(), decisionPausedMs, decisionGuideOpenedAt)) }}>{selected ? '确认调度' : '选择一个策略'}</button>}{result && s.waveIndex === 13 && <button className="confirm-dispatch" onClick={() => p.onRankedFinish?.()}>查看本局成绩 →</button>}</div>
@@ -230,13 +230,13 @@ function TutorialOptionPreview({ wave }: { wave: RankedWave }) {
   return <div className="tutorial-option-preview" data-tutorial-static><b>方案卡 / 对照任务线索</b>{wave.options.map((option) => <span key={option.id}><strong>{option.label}</strong><em>{option.detail}</em></span>)}</div>
 }
 
-export function DecisionDataGuide({ wave, loads }: { wave?: RankedWave; loads: GameState['dnLoads'] }) {
+export function DecisionDataGuide() {
   return <aside className="decision-data-guide" id="decision-data-guide" aria-label="判断方法">
-    <header><b>只按这三步判断</b><span>本题计时已暂停</span></header>
-    <div><strong>① 高频访问</strong><p>任务写的是“{wave?.access ?? '观察任务卡'}”。先找规则最贴近这句话的方案。</p></div>
-    <div><strong>② 数据分布</strong><p>任务写的是“{wave?.distribution ?? '观察任务卡'}”。判断它会均匀摊开，还是容易集中到一个 DN。</p></div>
-    <div><strong>③ 图上当前负载</strong><p>{loads.map((load, index) => `DN-${index + 1} ${load}%`).join(' · ')}。数字越高越忙，别让最忙的节点继续堆高。</p></div>
-    <footer>暂停期间不能选择或确认策略。高频访问 → 数据分布 → 当前 DN 负载，三处对照完后关闭说明，再选最匹配的方案。</footer>
+    <header><b>通用判断框架</b><span>本题计时已暂停</span></header>
+    <div><strong>① 看访问模式</strong><p>在任务卡的“高频访问”里辨认：这是持续写入、按条件查询，还是多处反复读取？选择最贴近使用方式的方案。</p></div>
+    <div><strong>② 看分布风险</strong><p>在任务卡的“数据分布”里判断：数据会自然摊开，还是容易集中？避免让新的方案把压力重新聚到一处。</p></div>
+    <div><strong>③ 看节点余量</strong><p>回到上方负载图，优先避开当前最忙的 DN，并为后续波次保留余量。</p></div>
+    <footer>暂停期间不能选择或确认策略。每题都按“访问模式 → 分布风险 → 节点余量”检查；任务内容会变，检查顺序不变。</footer>
   </aside>
 }
 
