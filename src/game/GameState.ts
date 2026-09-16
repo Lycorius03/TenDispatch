@@ -218,7 +218,7 @@ export const createTutorialState = (): GameState => {
     tutorialWaveStartLoads: [22, 24, 20],
     tutorialStrategy: undefined,
     deathReason: undefined,
-    npcMessage: '欢迎来到 TenDispatch！你要做的是：看任务卡 → 比较三个方案 → 选一个 → 点击确认 → 看结果。教学不限时、不扣分，选错了还能重试。我会每一步告诉你先看哪里。',
+    npcMessage: '欢迎来到 TenDispatch！每题只按一个顺序判断：高频访问 → 数据分布 → 图上当前 DN 负载。教学不限时、不扣分，选错了还能重试。',
   }
 }
 

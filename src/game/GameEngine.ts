@@ -96,7 +96,7 @@ export class GameEngine {
         tutorialStrategy: undefined,
         cargoMode: 'idle',
         deathReason: undefined,
-        npcMessage: '欢迎来到 TenDispatch！你要做的是：看任务卡 → 比较三个方案 → 选一个 → 点击确认 → 看结果。教学不限时、不扣分，选错了还能重试。我会每一步告诉你先看哪里。',
+        npcMessage: '欢迎来到 TenDispatch！每题只按一个顺序判断：高频访问 → 数据分布 → 图上当前 DN 负载。教学不限时、不扣分，选错了还能重试。',
       }
     }
     return {
@@ -126,7 +126,7 @@ export class GameEngine {
         ...state,
         tutorialStep: 2,
         cargoMode: 'write',
-        npcMessage: '每个方案都是一种放数据的方法。先看任务卡里的“主要访问”，再看选项下面三行信息，比较谁更容易堵、谁要问更多仓库。',
+        npcMessage: '每个方案都是一种放数据的方法。先看任务卡里的“高频访问”，找规则最贴近它的方案；暂时不用记其它参数。',
       }
     }
     if (state.tutorialStep === 2) {
@@ -135,7 +135,7 @@ export class GameEngine {
         tutorialStep: 3,
         queryNodes: 1,
         cargoMode: 'query',
-        npcMessage: '先认识任务卡：主要访问就是这一波最常用的查找方式；分布就是数据天然容易集中在哪一类。主要访问和方案规则对得上，查询通常只要访问更少的仓库；分布越集中，越要防止某个 DN 过忙。',
+        npcMessage: '任务卡只先看两句话：高频访问告诉你数据最常怎样使用；数据分布告诉你压力容易均匀摊开还是集中到一处。先把它们与方案名称和说明对上。',
       }
     }
     if (state.tutorialStep === 3) {
@@ -144,7 +144,7 @@ export class GameEngine {
         tutorialStep: 4,
         queryNodes: 1,
         cargoMode: 'query',
-        npcMessage: '方案卡下面的数字直接这样读：“查询 1 DN”就是访问 1 座仓库；“搬运 10%”就是每 100 次请求约有 10 次要跨仓库；“成本 9”就是这套方案的相对资源占用为 9，数值越小越省。主要访问帮你看查询，分布帮你看负载，规模和增长帮你看成本。',
+        npcMessage: '最后看图上的当前 DN 负载。百分比越高，节点越忙、剩余空间越少；如果某个 DN 已经很忙，就避免让新方案继续把压力堆向它。',
       }
     }
     if (state.tutorialStep === 4) {
@@ -158,7 +158,7 @@ export class GameEngine {
         tutorialStrategy: undefined,
         queryNodes: 0,
         cargoMode: 'idle',
-        npcMessage: '训练 1 开始。操作顺序只有三步：读任务卡 → 选方案 → 确认。点确认后我再解释结果；本波不限时。',
+        npcMessage: '训练 1 开始。按三步判断：高频访问 → 数据分布 → 当前 DN 负载。选好后确认，再看三个 DN 怎样变化；本波不限时。',
       }
     }
     if (state.tutorialStep === 6 && state.tutorialWaveCompleted) {
@@ -170,7 +170,7 @@ export class GameEngine {
         tutorialWaveCompleted: false,
         tutorialStrategy: undefined,
         cargoMode: 'idle',
-        npcMessage: '训练 2 开始。先看这批数据会不会被所有业务反复读取，再比较“少存一份”和“多存副本”哪种代价更适合本题。',
+        npcMessage: '训练 2 开始。高频访问写着所有业务都会反复读取，数据分布说明它是小型公共数据；再看图上当前负载，选最符合这三条线索的方案。',
       }
     }
     if (state.tutorialStep === 8 && state.tutorialWaveCompleted) {
@@ -182,7 +182,7 @@ export class GameEngine {
         tutorialWaveCompleted: false,
         tutorialStrategy: undefined,
         cargoMode: 'idle',
-        npcMessage: '训练 3 开始。先看分布是否集中，决定要多重视 DN 余量；再看主要访问是否明确，决定要多重视查询 DN；最后结合规模和增长，检查复制与搬运的成本。',
+        npcMessage: '训练 3 开始。先看高频访问需要怎样使用数据，再看分布是否容易集中，最后检查图上哪个 DN 已经最忙，避免继续消耗它的余量。',
       }
     }
     if (state.tutorialStep === 10 && state.tutorialWaveCompleted) {
@@ -190,7 +190,7 @@ export class GameEngine {
         ...state,
         tutorialStep: 11,
         cargoMode: 'idle',
-        npcMessage: '三波训练完成。进入正式模式后仍按同一顺序操作：看任务卡的分布和主要访问、读三个参数、选方案、确认、看结果。每波有 20 秒，没确认按 0 分处理。',
+        npcMessage: '三波训练完成。正式模式仍按同一顺序：高频访问 → 数据分布 → 当前 DN 负载。每波 20 秒；打开“判断方法”时暂停本题计时，关闭后继续。',
       }
     }
     if (state.tutorialStep === 11) {
@@ -201,7 +201,7 @@ export class GameEngine {
         tutorialCompleted: true,
         screen: 'home',
         phase: 'complete',
-        npcMessage: '教学完成！如果刚才能说出“我为什么选它”，就已经学会了。回到首页后可开始 Ranked；遇到不懂的参数，点击“决策数据说明”。',
+        npcMessage: '教学完成！只要能用高频访问、数据分布和当前负载说清为什么选择，就已经学会了。正式模式里可以随时打开“判断方法”并暂停本题计时。',
       }
     }
     return state
@@ -225,7 +225,7 @@ export class GameEngine {
       gameStartedAt: now,
       stageStartedAt: now,
       waveStartedAt: now,
-      npcMessage: '教学重新开始。记住操作顺序：看任务卡、读参数、选方案、确认、看结果；三波训练会逐步练完。',
+      npcMessage: '教学重新开始。记住操作顺序：高频访问 → 数据分布 → 当前 DN 负载；三波训练会反复练习这三步。',
     }
   }
 
@@ -249,8 +249,8 @@ export class GameEngine {
       systemStatus,
       cargoMode: selected.queryNodes > 1 ? 'query' : 'write',
       npcMessage: selected.id === best.id
-        ? `选对了，这一波的最佳方案是“${best.label}”。${best.note} 看看任务卡的分布和主要访问，你会发现它们与这套方案的参数正好对应。`
-        : `这次选的是“${selected.label}”，本波最佳方案是“${best.label}”。${best.note} 回看三个方案的查询、搬运、成本和负载，再比较它们与任务卡分布、主要访问的匹配度。`,
+        ? `判断正确，这一波更合适的方案是“${best.label}”。它同时对上了高频访问、数据分布和当前 DN 余量。`
+        : `这次选的是“${selected.label}”，本波更合适的方案是“${best.label}”。回看高频访问、数据分布和确认后的三个 DN 负载。`,
     }
   }
 
@@ -266,7 +266,7 @@ export class GameEngine {
       queryNodes: 0,
       systemStatus: 'STABLE',
       cargoMode: 'idle',
-      npcMessage: `重新尝试训练 ${state.tutorialWaveIndex + 1}。这次可以换一个方案，比较查询路径、搬运、成本和负载结果。`,
+      npcMessage: `重新尝试训练 ${state.tutorialWaveIndex + 1}。仍按高频访问、数据分布、当前 DN 负载依次判断，再比较确认后的负载变化。`,
     }
   }
 
@@ -289,7 +289,7 @@ export class GameEngine {
   useRankedPrediction(state: GameState): GameState {
     if (state.mode !== 'ranked' || state.phase !== 'ranked' || state.predictionUsesRemaining <= 0 || state.predictionUsedThisWave) return state
     this.tracker.track({ type: 'prediction_used', stage: `wave-${state.waveIndex + 1}`, attempt: 3 - state.predictionUsesRemaining })
-    return { ...state, predictionUsesRemaining: state.predictionUsesRemaining - 1, predictionUsedThisWave: true, npcMessage: '预测已展开：注意三个策略的负载变化、查询节点数和资源成本。' }
+    return { ...state, predictionUsesRemaining: state.predictionUsesRemaining - 1, predictionUsedThisWave: true, npcMessage: '预测已展开：用预测后的负载验证判断，再回看本题的高频访问与数据分布。' }
   }
 
   submitRankedWave(state: GameState, strategy: RankedStrategy, decisionMs = Date.now() - state.waveStartedAt): GameState {
@@ -446,7 +446,7 @@ export class GameEngine {
       lastDecisionSnapshot: undefined,
       lastDecisionStrategy: undefined,
       cargoMode: 'idle',
-      npcMessage: nextWave >= 11 ? 'FINAL RUSH：不引入新机制，只提高决策密度。看住负载、查询节点和搬运成本。' : '新波次已到达。注意当前状态不会重置。',
+      npcMessage: nextWave >= 11 ? 'FINAL RUSH：不引入新机制，只提高决策密度。仍按高频访问、数据分布、当前 DN 负载依次判断。' : '新波次已到达。当前负载不会重置，继续按三条线索判断。',
     }
   }
 

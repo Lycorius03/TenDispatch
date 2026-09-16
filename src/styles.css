@@ -636,7 +636,8 @@ button:disabled { cursor:not-allowed; opacity:.45; }
 .tutorial-wave-options { flex: 1; }
 .tutorial-wave-options button em { line-height: 1.35; }
 .tutorial-score-key { margin-top: 9px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
-.tutorial-score-key span { padding: 7px 9px; color: #a9c6d4; background: rgba(10, 31, 46, .7); border: 1px solid #294d63; font-size: 10px; line-height: 1.4; }
+.tutorial-score-key span { padding: 8px 10px; display: grid; gap: 5px; color: #bdd4df; background: rgba(10, 31, 46, .7); border: 1px solid #294d63; font-size: 11px; line-height: 1.45; }
+.tutorial-score-key span b { color: var(--cyan-bright); font-size: 12px; }
 .ranked-decision-desk { position: relative; }
 .decision-clock { width: 330px; display: grid; grid-template-columns: 1fr auto; gap: 5px 16px; align-items: center; margin-bottom: 10px; }
 .decision-clock span { color: #86a7b9; font-size: 12px; }
@@ -644,16 +645,19 @@ button:disabled { cursor:not-allowed; opacity:.45; }
 .decision-clock i { grid-column: 1 / -1; height: 5px; background: #3b2f27; overflow: hidden; }
 .decision-clock i b { display: block; width: 100%; height: 100%; background: var(--orange); transform-origin: left; transition: transform .1s linear; }
 .decision-clock small { grid-column: 1 / -1; color: #ffb173; font-size: 10px; }
-.decision-guide-toggle { min-height: 38px; margin: 0 0 9px; padding: 0 12px; color: #b9d6e4; background: #0d2637; border: 1px solid #315572; font-size: 11px; font-weight: 700; }
+.decision-clock.is-paused strong, .decision-clock.is-paused small { color: var(--cyan-bright); }
+.decision-clock.is-paused i { background: #173b4b; }
+.decision-clock.is-paused i b { background: var(--cyan); transition: none; }
+.decision-guide-toggle { min-height: 42px; margin: 0 0 9px; padding: 0 14px; color: #cce4ee; background: #0d2637; border: 1px solid #315572; font-size: 13px; font-weight: 700; }
 .decision-guide-toggle:hover { color: #effcff; border-color: var(--cyan); background: #15364e; }
-.decision-data-guide { margin: 0 0 10px; padding: 12px 14px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; background: #102b3e; border: 1px solid #4b7e94; }
+.decision-data-guide { margin: 0 0 10px; padding: 15px 16px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; background: #102b3e; border: 1px solid #4b7e94; }
 .decision-data-guide header, .decision-data-guide footer { grid-column: 1 / -1; display: flex; justify-content: space-between; gap: 12px; }
-.decision-data-guide header b { color: var(--cyan-bright); font: 600 14px/1 var(--display); }
-.decision-data-guide header span { color: #8eb5c6; font-size: 10px; }
-.decision-data-guide > div { padding: 9px; background: rgba(5, 18, 29, .42); border-left: 2px solid #4d92ad; }
-.decision-data-guide strong { color: #e5f8ff; font-size: 11px; }
-.decision-data-guide p, .decision-data-guide footer { margin: 5px 0 0; color: #a8c1cf; font-size: 10px; line-height: 1.45; }
-.decision-data-guide footer { padding-top: 9px; border-top: 1px solid rgba(117, 170, 193, .24); color: #d0e4ed; }
+.decision-data-guide header b { color: var(--cyan-bright); font: 600 17px/1.1 var(--display); }
+.decision-data-guide header span { color: #9fc7d8; font-size: 13px; }
+.decision-data-guide > div { padding: 12px; background: rgba(5, 18, 29, .42); border-left: 2px solid #4d92ad; }
+.decision-data-guide strong { color: #e5f8ff; font-size: 15px; }
+.decision-data-guide p, .decision-data-guide footer { margin: 7px 0 0; color: #c0d5df; font-size: 14px; line-height: 1.6; }
+.decision-data-guide footer { padding-top: 11px; border-top: 1px solid rgba(117, 170, 193, .24); color: #e0f0f5; }
 .ranked-options { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
 .ranked-options button { min-height: 101px; padding: 12px 14px; display: flex; flex-direction: column; align-items: flex-start; gap: 5px; text-align: left; color: #d8edf5; background: #10243a; border: 1px solid #385d7c; transition: background .2s, border-color .2s, transform .2s; }
 .ranked-options button:hover { transform: translateY(-2px); border-color: var(--cyan); background: #173b56; }
