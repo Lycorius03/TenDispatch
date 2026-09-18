@@ -1,5 +1,6 @@
 import type { GameRecord, GameRepository } from './GameRepository'
 import { getDailySeed, randomNickname } from '../config/difficulty'
+import { compareRanking } from './leaderboard'
 
 const RECORDS_KEY = 'tendispatch.records.v1'
 const PLAYER_NICKNAME_KEY = 'tendispatch.player-nickname.v1'
@@ -14,7 +15,7 @@ export class LocalRepository implements GameRepository {
   getRankings(view: 'today' | 'overall' = 'overall') {
     let records = this.bestRecords(this.readRecords())
     if (view === 'today') records = records.filter((record) => record.mode === 'ranked' && record.dailySeed === getDailySeed())
-    return records.sort((a, b) => this.compareRanking(a, b))
+    return records.sort(compareRanking)
   }
 
   nextAnonymousName() {
@@ -70,15 +71,6 @@ export class LocalRepository implements GameRepository {
   }
 
   private isBetter(candidate: GameRecord, current: GameRecord) {
-    return this.compareRanking(candidate, current) < 0
-  }
-
-  private compareRanking(a: GameRecord, b: GameRecord) {
-    return b.score - a.score
-      || (b.breakdown.perfectCount ?? b.behavior.perfectCount ?? 0) - (a.breakdown.perfectCount ?? a.behavior.perfectCount ?? 0)
-      || (b.breakdown.maxCombo ?? b.behavior.maxCombo ?? 0) - (a.breakdown.maxCombo ?? a.behavior.maxCombo ?? 0)
-      || a.duration - b.duration
-      || (a.breakdown.averageDecisionMs ?? a.behavior.averageDecisionMs ?? a.duration * 1000) - (b.breakdown.averageDecisionMs ?? b.behavior.averageDecisionMs ?? b.duration * 1000)
-      || a.hintCount - b.hintCount
+    return compareRanking(candidate, current) < 0
   }
 }

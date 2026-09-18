@@ -10,6 +10,7 @@ import { EventTracker } from './game/EventTracker'
 import { GameEngine } from './game/GameEngine'
 import { ScoreEngine } from './game/ScoreEngine'
 import { LocalRepository } from './services/LocalRepository'
+import { bestRecordOf, bestRecordPerNickname } from './services/leaderboard'
 import type { GameRecord } from './services/GameRepository'
 
 export default function App() {
@@ -84,15 +85,16 @@ export default function App() {
       events: tracker.getEvents(),
     }
     if (completed.mode === 'ranked') repository.save(record)
-    const today = repository.getRankings('today')
-    const overall = repository.getRankings('overall')
-    const rankIndex = today.findIndex((item) => item.id === record.id)
-    const personalBest = Math.max(record.score, ...overall.filter((item) => item.nickname === record.nickname).map((item) => item.score))
+    // 榜单上同一个呼号只占一行：排名、个人最佳、距 TOP 10 都按这名玩家最好的一局算。
+    const today = bestRecordPerNickname(repository.getRankings('today'))
+    const mine = bestRecordOf(repository.getRankings('overall'), record.nickname)
+    const rankIndex = mine ? today.findIndex((item) => item.id === mine.id) : -1
+    const personalBest = mine?.score ?? record.score
     const enriched: GameRecord = {
       ...record,
       rank: rankIndex >= 0 ? rankIndex + 1 : undefined,
       personalBest,
-      distanceTop10: rankIndex < 0 ? undefined : Math.max(0, (today[9]?.score ?? record.score) - record.score),
+      distanceTop10: rankIndex < 0 ? undefined : Math.max(0, (today[9]?.score ?? personalBest) - personalBest),
     }
     setLatestRecord(enriched)
     setState(completed)

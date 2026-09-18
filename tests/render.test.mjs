@@ -3,6 +3,8 @@ import React from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { DecisionDataGuide, GamePage, getDecisionElapsedMs, shuffleOptions } from '../src/pages/Game/GamePage.tsx'
 import { HomePage } from '../src/pages/Home/HomePage.tsx'
+import { LeaderboardPage } from '../src/pages/Leaderboard/LeaderboardPage.tsx'
+import { getDailySeed } from '../src/config/difficulty.ts'
 import { createInitialState, createRankedState, createTutorialState } from '../src/game/GameState.ts'
 import { getRankedWave } from '../src/config/rankedWaves.ts'
 import { strategyVocabulary } from '../src/config/gameConfig.ts'
@@ -142,7 +144,22 @@ assert.ok(replicaScene.includes('复制：三个 DN 各存一份'))
 assert.ok(replicaScene.includes('大表副本'))
 const syncScene=renderToStaticMarkup(React.createElement(GamePage,{...props,state:{...initial,phase:'final',screen:'game',cargoMode:'sync'}}))
 assert.ok(syncScene.includes('GTM：多仓事务正在对齐'))
-console.log('SSR: 12 phases render; each has <=4 primary controls, 3 DN; both desktop scale factors verified; nickname required.')
+const boardRecord = (nickname, score, id) => ({
+  id, mode: 'ranked', dailySeed: getDailySeed(), nickname, score, title: '稳定调度员', hintCount: 0, duration: 80, completedAt: '',
+  breakdown: { mode: 'ranked', version: 3, total: score, distribution: 0, query: 0, replication: 0, architecture: 0, independence: 0, title: '稳定调度员', feedback: '', perfectCount: 3, maxCombo: 3, averageDecisionMs: 1200 },
+  behavior: { shardingAdjustments: 0, skewTriggered: false, averageQueryNodes: 1, hintCount: 0, stageTimes: {}, totalDuration: 80, perfectCount: 3, maxCombo: 3 },
+  events: [],
+})
+const board = renderToStaticMarkup(React.createElement(LeaderboardPage, {
+  records: [boardRecord('重复呼号', 700, 'a'), boardRecord('重复呼号', 1200, 'b'), boardRecord('重复呼号', 900, 'c'), boardRecord('另一位', 1100, 'd')],
+  onHome: () => {}, onRestart: () => {},
+}))
+assert.equal((board.match(/重复呼号/g) || []).length, 1)
+assert.ok(board.includes('1200'))
+assert.ok(!board.includes('>700<'))
+assert.ok(!board.includes('>900<'))
+assert.ok(board.includes('同一个呼号只占一行'))
+console.log('SSR: 12 phases render; each has <=4 primary controls, 3 DN; both desktop scale factors verified; nickname required; one board row per nickname.')
 const sharding=renderToStaticMarkup(React.createElement(GamePage,{...props,state:{...initial,phase:'sharding',screen:'game'}}))
 assert.ok(sharding.includes('记录按编号分到三个仓库'))
 assert.ok(sharding.includes('相同状态的记录放在一起'))
