@@ -773,3 +773,62 @@ button:disabled { cursor:not-allowed; opacity:.45; }
   .ranking-tabs span { display: none; }
   .mode-cards { grid-template-columns: 1fr; }
 }
+
+/* 决策层微调：按钮先说动作、术语第二行；场景把人话讲清楚；结算对照官方用法。 */
+.scene-action rect { fill: rgba(8, 24, 38, .94); stroke: #2b5674; }
+.scene-action .scene-action-title { font-size: 21px; font-weight: 700; fill: #E6F9FF; }
+.scene-action .scene-action-sub { font-size: 13px; fill: #7fa3bd; letter-spacing: .05em; }
+.scene-action.tone-risk rect { stroke: #B4703A; }
+.scene-action.tone-risk .scene-action-title { fill: #FFB877; }
+.scene-action.tone-gold rect { stroke: #9A7C33; }
+.scene-action.tone-gold .scene-action-title { fill: #FFD166; }
+.scene-action.tone-gtm rect { stroke: #4E8FA6; }
+.scene-action.tone-gtm .scene-action-title { fill: #9ee9ff; }
+.scene-action.tone-good rect { stroke: #3C7F55; }
+.scene-action.tone-good .scene-action-title { fill: #8FF0B0; }
+.shard-splinter { animation: shard-split .7s ease-out both; }
+@keyframes shard-split { 0%,30% { opacity: 0; } 31%,70% { opacity: .9; } 100% { opacity: 0; } }
+.broadcast-flash { animation: broadcast-burst .9s ease-out both; }
+@keyframes broadcast-burst { 0% { opacity: 1; stroke-width: 2; } 100% { opacity: 0; stroke-width: 7; } }
+.query-hit circle { animation: query-hit-pulse 1.1s ease-out infinite; }
+@keyframes query-hit-pulse { 0% { opacity: .9; stroke-width: 1; } 100% { opacity: 0; stroke-width: 6; } }
+.output-live.is-broadcast { animation: output-activate .2s ease-out both; }
+
+.ranked-options .option-term, .tutorial-option-preview .option-term { color: #6f93ad; font-size: 10px; font-style: normal; letter-spacing: .04em; }
+.ranked-options .option-term { margin-top: 1px; }
+
+.prediction-panel header { grid-template-columns: 1fr auto; }
+.prediction-panel > div { grid-template-columns: 1.25fr repeat(3, minmax(0, 1fr)); gap: 10px; }
+.prediction-panel > div span { display: flex; align-items: baseline; gap: 6px; }
+.prediction-panel > div span small { color: #7d8f8c; font-size: 9px; }
+.prediction-panel > div span.is-red { color: var(--orange); }
+.prediction-note { margin: 6px 0 0; color: #9a8f6d; font-size: 10px; }
+
+.wave-placement { margin-top: 9px; padding: 10px 14px; display: grid; gap: 5px; background: #102a3e; border: 1px solid #3f7184; border-left: 3px solid var(--cyan); }
+.wave-placement > div { display: flex; align-items: baseline; gap: 12px; }
+.wave-placement b { color: var(--cyan-bright); font-size: 14px; }
+.wave-placement > div span { color: #9fc0cf; font-size: 11px; }
+.wave-placement p { margin: 0; color: #c3dae4; font-size: 12px; line-height: 1.45; }
+.wave-placement .placement-usage { color: #9db8c9; }
+.wave-placement .placement-gtm { color: var(--gold); }
+
+.placement-report { margin-top: 18px; padding: 26px 30px; background: #091b25; border: 1px solid var(--line); }
+.placement-report > header { margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; }
+.placement-report h2 { margin: 0; color: #d8f1f4; font: 600 24px/1 var(--display); }
+.placement-report header span { color: #72949c; font: 600 9px/1 var(--display); letter-spacing: .13em; }
+.placement-rules { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.placement-rules > div { padding: 14px 16px; display: grid; gap: 8px; background: #0b202c; border-left: 2px solid #3c8eaa; }
+.placement-rules span { color: #8fb0bb; font-size: 11px; }
+.placement-rules b { color: #e3f9fb; font-size: 15px; }
+.placement-rules small { color: var(--gold); font-size: 10px; letter-spacing: .08em; }
+.placement-line { margin: 14px 0 0; color: #b1c7da; font-size: 13px; line-height: 1.65; }
+.placement-line b { color: #e5f7ff; }
+.ranked-badges { margin-top: 16px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.ranked-badges b { padding: 7px 13px; color: #07111f; background: var(--gold); font-size: 12px; font-weight: 800; letter-spacing: .04em; }
+.ranked-badges span { color: #7c99a3; font-size: 11px; }
+
+@media (max-width: 900px) {
+  .placement-rules { grid-template-columns: 1fr; }
+  .prediction-panel > div { grid-template-columns: 1.25fr repeat(3, minmax(0, 1fr)); }
+}
+.tutorial-feedback p.tutorial-risk { color: #ffb173; }

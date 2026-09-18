@@ -22,6 +22,29 @@ export interface ScoreBreakdown {
   averageDecisionMs?: number
   undoPenalty?: number
   worstWave?: GameState['worstWave']
+  // 记忆点不是分数，是这两条铁律和贴场景的称号。
+  badges?: string[]
+  placement?: string
+}
+
+// 结算对照官方用法，不重复报分。
+export const placementAdviceFor = (result?: WaveResult) => {
+  if (!result) return '大表、持续写入 → 分流、只存一份（分片表）'
+  if (result.publicData && result.strategy !== 'replicated') return '小而公共、谁都读 → 每仓一份（复制表）'
+  if (result.queryNodes > 1) return '查询条件和分流键不一致 → 触达节点从 1 变成 3'
+  if (!result.publicData && result.strategy === 'replicated') return '大表、持续写入 → 分流、只存一份，不要全量复制'
+  return '动作和任务卡两行对上了，保持这个判断顺序'
+}
+
+export const badgesFor = (waves: WaveResult[]) => {
+  if (waves.length === 0) return []
+  const badges: string[] = []
+  const directHits = waves.filter((wave) => wave.preferred && wave.queryNodes === 1 && !wave.publicData).length
+  if (directHits >= 6) badges.push('编号直达')
+  if (!waves.some((wave) => wave.publicData === false && wave.strategy === 'replicated')) badges.push('拒绝全量复制')
+  const publicWaves = waves.filter((wave) => wave.publicData)
+  if (publicWaves.length > 0 && publicWaves.every((wave) => wave.strategy === 'replicated')) badges.push('公共目录就近读')
+  return badges
 }
 
 export class ScoreEngine {
@@ -43,9 +66,10 @@ export class ScoreEngine {
     const weakestResult = waves.length > 0 ? [...waves].sort((a, b) => a.score.total - b.score.total)[0] : undefined
     const weakest = state.worstWave ?? (weakestResult ? { wave: weakestResult.wave, lostPoints: 100 - weakestResult.score.total, reason: weakestResult.note } : undefined)
     const title = total >= 2000 ? '数据调度王牌' : total >= 1600 ? '高压调度专家' : total >= 1100 ? '稳定调度员' : '调度成长中'
+    const placement = placementAdviceFor(weakestResult)
     const feedback = weakest
-      ? `下一局最容易提升：Wave ${weakest.wave}，${weakest.reason}。优先把这一波的查询触达和资源成本压下来。`
-      : '完成一局 Ranked 后，这里会告诉你最值得重练的波次。'
+      ? `最值得重练的是 Wave ${weakest.wave}。${weakest.reason} 对照官方用法——${placement}。`
+      : '完成一局 Ranked 后，这里会告诉你最值得重练的波次和该对照的官方用法。'
     return {
       mode: 'ranked',
       version: 3,
@@ -66,6 +90,8 @@ export class ScoreEngine {
       averageDecisionMs,
       undoPenalty: state.undoPenalty,
       worstWave: weakest,
+      badges: badgesFor(waves),
+      placement,
     }
   }
 

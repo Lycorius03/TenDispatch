@@ -3,6 +3,7 @@ import { GameEngine, comboMultiplier } from '../src/game/GameEngine.ts'
 import { createRankedState, createTutorialState } from '../src/game/GameState.ts'
 import { EventTracker } from '../src/game/EventTracker.ts'
 import { getRankedWaveSet, rankedDecisionWindowMs, rankedDifficultyQuota, rankedNextWaveDelayMs, rankedWaveLibrary } from '../src/config/rankedWaves.ts'
+import { strategyVocabulary, tablePlacementRules, trainingLessons } from '../src/config/gameConfig.ts'
 import { ScoreEngine } from '../src/game/ScoreEngine.ts'
 
 const dailyWaves = getRankedWaveSet('TD-TEST-SEED')
@@ -20,6 +21,22 @@ for (const [difficulty, count] of Object.entries(rankedDifficultyQuota)) {
   assert.equal(dailyWaves.filter((wave) => wave.difficulty === difficulty).length, count)
 }
 assert.deepEqual([1, 2, 3, 4, 5].map(comboMultiplier), [1, 1.1, 1.2, 1.3, 1.5])
+
+// 决策时能看见的那一层：按钮固定成物流动作，OpenTenBase 术语只在第二行。
+const actionSet = new Set(Object.values(strategyVocabulary).map((item) => item.action))
+for (const wave of rankedWaveLibrary) {
+  assert.equal(new Set(wave.options.map((option) => option.id)).size, wave.options.length, wave.templateId)
+  assert.equal(wave.options.some((option) => option.id === wave.defaultStrategy), true, wave.templateId)
+  assert.ok(!/分片|副本|Shard|Replication|Broadcast/.test(`${wave.distribution}${wave.access}`), wave.templateId)
+  for (const option of wave.options) {
+    assert.equal(option.label, strategyVocabulary[option.id].action, `${wave.templateId}:${option.id}`)
+    assert.ok(actionSet.has(option.label), option.label)
+    assert.ok(!/分片|副本|Shard|Replication|Broadcast/.test(option.detail), `${wave.templateId}:${option.detail}`)
+    assert.ok(option.note.length > 0, `${wave.templateId}:${option.id}`)
+  }
+}
+assert.equal(trainingLessons.length, 3)
+assert.equal(tablePlacementRules.length, 3)
 
 const engine = new GameEngine(new EventTracker())
 let state = engine.start(createRankedState('TD-TEST-SEED'), '测试调度员')
@@ -46,7 +63,14 @@ assert.equal(state.phase, 'ranked-result')
 assert.ok(state.maxCombo >= 5)
 const report = engine.finishRanked(state)
 assert.equal(report.screen, 'result')
-assert.equal(new ScoreEngine().calculate(report).mode, 'ranked')
+const rankedBreakdown = new ScoreEngine().calculate(report)
+assert.equal(rankedBreakdown.mode, 'ranked')
+// 结算对照官方用法，并给出贴场景的称号；分还是分，记忆点变成两条铁律。
+assert.ok(report.waveResults.every((wave) => wave.preferred === true && wave.publicData !== undefined))
+assert.ok((rankedBreakdown.placement ?? '').includes('→'))
+assert.deepEqual(rankedBreakdown.badges, ['编号直达', '拒绝全量复制', '公共目录就近读'])
+assert.match(rankedBreakdown.feedback, /对照官方用法/)
+assert.match(rankedBreakdown.feedback, /大表、持续写入|小而公共|查询条件和分流键不一致/)
 
 let prediction = engine.start(createRankedState('TD-PREDICT'), '预测测试')
 prediction = engine.useRankedPrediction(prediction)

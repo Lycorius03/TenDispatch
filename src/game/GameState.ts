@@ -36,6 +36,9 @@ export interface WaveScore {
 export interface WaveResult {
   wave: number
   strategy: RankedStrategy
+  // 结算只需要这两件事：本波是不是公共数据、选的是不是对得上的动作。
+  publicData?: boolean
+  preferred?: boolean
   timedOut: boolean
   decisionMs: number
   score: WaveScore
@@ -218,7 +221,7 @@ export const createTutorialState = (): GameState => {
     tutorialWaveStartLoads: [22, 24, 20],
     tutorialStrategy: undefined,
     deathReason: undefined,
-    npcMessage: '欢迎来到 TenDispatch！每题只按一个顺序判断：高频访问 → 数据分布 → 图上当前 DN 负载。教学不限时、不扣分，选错了还能重试。',
+    npcMessage: '欢迎来到 TenDispatch！每题只按一个顺序判断：这批货长什么样 → 待会怎么找 → 图上当前 DN 负载。教学不限时、不扣分，选错了还能重试。',
   }
 }
 

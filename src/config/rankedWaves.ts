@@ -1,4 +1,5 @@
 import type { RankedStrategy } from '../game/GameState'
+import { strategyVocabulary } from './gameConfig'
 
 export type LoadDelta = [number, number, number]
 export type WaveDifficulty = 'easy' | 'medium' | 'hard'
@@ -21,6 +22,7 @@ export interface RankedWave {
   title: string
   dataName: string
   size: 1 | 2 | 3 | 4 | 5
+  // 任务卡只说两件事：这批货长什么样、待会怎么找。
   distribution: string
   access: string
   publicData: boolean
@@ -29,16 +31,16 @@ export interface RankedWave {
   options: RankedOption[]
 }
 
+// 按钮固定成物流动作，术语交给第二行和结算。每波只换副文案里的后果。
 const makeOption = (
   id: RankedStrategy,
-  label: string,
   detail: string,
   loadDelta: LoadDelta,
   queryNodes: number,
   crossNodeMovement: number,
   resourceCost: number,
   note: string,
-): RankedOption => ({ id, label, detail, loadDelta, queryNodes, crossNodeMovement, resourceCost, note })
+): RankedOption => ({ id, label: strategyVocabulary[id].action, detail, loadDelta, queryNodes, crossNodeMovement, resourceCost, note })
 
 const rankedWaveTemplates: RankedWave[] = [
   {
@@ -46,14 +48,14 @@ const rankedWaveTemplates: RankedWave[] = [
     title: '用户活动记录进入',
     dataName: '用户活动记录',
     size: 3,
-    distribution: '地区高度集中，编号均匀',
-    access: '按用户查询',
+    distribution: '地区扎堆，编号均匀',
+    access: '按人查',
     publicData: false,
     defaultStrategy: 'id',
     options: [
-      makeOption('id', '按用户编号分片', '按编号轮流写入三个 DN，查询能锁定目标节点。', [7, 8, 7], 1, 8, 7, '编号分片让写入和查询都保持稳定。'),
-      makeOption('region', '按地区分片', '相同地区的数据放在一起，热点地区会堆向一个 DN。', [22, 5, 7], 3, 22, 6, '地区集中会带来局部热点和跨节点查询。'),
-      makeOption('status', '按状态分片', '状态比例不均，数据会明显倾斜。', [31, 3, 2], 3, 29, 5, '状态字段分布不均，最容易制造数据倾斜。'),
+      makeOption('id', '一批货拆到三个仓；按编号找人只打一个仓。', [7, 8, 7], 1, 8, 7, '对上了：按人找就按人分流，写入摊平，查询只打一个仓。'),
+      makeOption('region', '同地区的货放一起；热点地区会压红一个仓，按人查要问三个仓。', [22, 5, 7], 3, 22, 6, '地区扎堆还按地区放，热点地区挤爆一个仓，按人查也要问三个仓。'),
+      makeOption('status', '同状态的货挤在一个仓；三个仓的负载差得最开。', [31, 3, 2], 3, 29, 5, '状态分布不均：一个仓几乎装满，另外两个闲着，查询还要三个仓都问。'),
     ],
   },
   {
@@ -61,14 +63,14 @@ const rankedWaveTemplates: RankedWave[] = [
     title: '订单明细持续写入',
     dataName: '订单明细',
     size: 2,
-    distribution: '各地区较均匀',
-    access: '按订单编号查询',
+    distribution: '各地区差不多，编号匀',
+    access: '按编号查单笔',
     publicData: false,
     defaultStrategy: 'id',
     options: [
-      makeOption('id', '按订单编号分片', '编号范围清晰，写入与单笔查询都能直达。', [6, 7, 6], 1, 7, 6, '目标节点明确，平均触达节点数接近 1.0。'),
-      makeOption('region', '按地区分片', '地区分布均衡，但订单查询仍要问多个 DN。', [9, 8, 7], 3, 19, 5, '写入还算平均，查询路径却变长。'),
-      makeOption('replicated', '复制到三个 DN', '每个 DN 都有订单全量副本。', [15, 15, 15], 1, 26, 28, '查询很快，但大型业务数据的复制成本过高。'),
+      makeOption('id', '一批货拆到三个仓；按编号找人只打一个仓。', [6, 7, 6], 1, 7, 6, '对上了：编号均匀就按编号分流，单笔查询只打一个仓。'),
+      makeOption('region', '同地区的货放一起；单笔订单查询要三个仓都问一遍。', [9, 8, 7], 3, 19, 5, '查询条件和分流键不一致：触达节点从 1 变成 3。'),
+      makeOption('replicated', '三个仓各放一份；写入要同步三份，多占两份货位。', [15, 15, 15], 1, 26, 28, '大表全量复制：写入和货位都变成三倍。'),
     ],
   },
   {
@@ -76,14 +78,14 @@ const rankedWaveTemplates: RankedWave[] = [
     title: '区域活动报名涌入',
     dataName: '区域活动报名',
     size: 3,
-    distribution: '地区是最明显的自然分布',
+    distribution: '地区就是天然分界',
     access: '按地区汇总',
     publicData: false,
     defaultStrategy: 'region',
     options: [
-      makeOption('region', '按地区分片', '同一地区的报名就近汇总，报表查询路径短。', [7, 8, 7], 1, 8, 7, '查询条件与分布键一致，地区报表可以直达。'),
-      makeOption('id', '按用户编号分片', '写入平均，但地区报表需要广播。', [8, 8, 8], 3, 21, 7, '编号适合找人，不适合按地区做聚合。'),
-      makeOption('status', '按报名状态分片', '热门状态会集中到一个 DN。', [24, 5, 6], 3, 25, 6, '状态比例失衡，负载和查询都不理想。'),
+      makeOption('region', '同地区的货放一起；按地区汇总只打一个仓。', [7, 8, 7], 1, 8, 7, '对上了：按地区汇总就按地区分流，报表只打一个仓。'),
+      makeOption('id', '一批货拆到三个仓；按人查还行，按地区汇总要问三个仓。', [8, 8, 8], 3, 21, 7, '查询条件和分流键不一致：地区报表的触达节点从 1 变成 3。'),
+      makeOption('status', '同状态的货挤在一个仓；热门状态会压红一个仓。', [24, 5, 6], 3, 25, 6, '状态比例失衡：热门状态挤爆一个仓，汇总查询也要三个仓都问。'),
     ],
   },
   {
@@ -91,14 +93,14 @@ const rankedWaveTemplates: RankedWave[] = [
     title: '个人通知任务生成',
     dataName: '用户通知任务',
     size: 2,
-    distribution: '用户编号均匀，单用户访问频繁',
-    access: '按用户查询',
+    distribution: '编号均匀，一个人被反复问',
+    access: '按人查',
     publicData: false,
     defaultStrategy: 'id',
     options: [
-      makeOption('id', '按用户编号分片', '相同用户的任务保持可定位。', [8, 7, 8], 1, 8, 6, '访问路径清晰，写入压力也比较均匀。'),
-      makeOption('region', '按地区分片', '地区热点会让一部分 DN 先变忙。', [19, 8, 6], 3, 20, 6, '地区不是这类个人查询的主要条件。'),
-      makeOption('replicated', '复制高频通知', '所有 DN 都保存通知任务。', [13, 13, 13], 1, 24, 22, '小数据能复制，但写入同步会增加成本。'),
+      makeOption('id', '一批货拆到三个仓；同一个人反复来查也只打一个仓。', [8, 7, 8], 1, 8, 6, '对上了：按人查就按人分流，路径最短。'),
+      makeOption('region', '同地区的货放一起；地区热点让一个仓先忙，按人查要问三个仓。', [19, 8, 6], 3, 20, 6, '地区不是这批货的查询条件：触达节点从 1 变成 3，还有一个仓先红。'),
+      makeOption('replicated', '三个仓各放一份；写入要同步三份，多占两份货位。', [13, 13, 13], 1, 24, 22, '小数据能复制，但这批货一直在写，复制要多同步两份。'),
     ],
   },
   {
@@ -106,14 +108,14 @@ const rankedWaveTemplates: RankedWave[] = [
     title: '公共院系目录上线',
     dataName: '院系公共目录',
     size: 1,
-    distribution: '规模小，所有业务都会访问',
-    access: '按名称与编码查询',
+    distribution: '很小，但谁都用',
+    access: '谁都来读（按名称与编码）',
     publicData: true,
     defaultStrategy: 'replicated',
     options: [
-      makeOption('replicated', '复制到三个 DN', '每个节点就近读取一份小型公共数据。', [5, 5, 5], 1, 7, 14, '小型高频公共数据适合复制，查询不必跨节点。'),
-      makeOption('centralized', '只保存一份', '只占一个位置，其他 DN 访问要跨节点取用。', [16, 2, 2], 3, 25, 4, '节省存储，但会增加跨节点搬运。'),
-      makeOption('region', '按地区分片', '目录很小，却把公共查询拆成多条路径。', [8, 8, 7], 3, 22, 8, '公共数据不需要为了分片牺牲访问效率。'),
+      makeOption('replicated', '三个仓各放一份；谁来都能就地读。', [5, 5, 5], 1, 7, 14, '对上了：小而公共就每仓一份，读得就近，查询只打一个仓。'),
+      makeOption('centralized', '只占一份货位；三个仓每次要用都得跨仓搬一次。', [16, 2, 2], 3, 25, 4, '公共目录只放一个仓：每次都跨仓搬一次，触达节点从 1 变成 3。'),
+      makeOption('region', '同地区的货放一起；公共查询被拆成三条路径。', [8, 8, 7], 3, 22, 8, '公共数据不用按地区分流：触达节点从 1 变成 3，搬运反而更多。'),
     ],
   },
   {
@@ -121,14 +123,14 @@ const rankedWaveTemplates: RankedWave[] = [
     title: '海量业务日志进入',
     dataName: '业务日志',
     size: 5,
-    distribution: '持续增长，写入量大',
-    access: '按时间段检索',
+    distribution: '一直在涨，量大',
+    access: '按时间段翻',
     publicData: false,
     defaultStrategy: 'time',
     options: [
-      makeOption('time', '按时间范围分片', '每个 DN 负责一段时间，日志只保存一份。', [12, 10, 11], 1, 10, 9, '大数据优先分摊写入和存储，避免全量复制。'),
-      makeOption('id', '按用户编号分片', '用户查询方便，但时间范围检索需要多节点协作。', [10, 11, 10], 3, 23, 9, '分布键和主要检索条件不一致。'),
-      makeOption('replicated', '三个 DN 各存全量', '每个节点都保存完整日志。', [28, 28, 28], 1, 31, 40, '大型业务数据不应随意复制，资源成本会迅速升高。'),
+      makeOption('time', '每段时间放一个仓；按时间段翻只打一个仓，每条只存一份。', [12, 10, 11], 1, 10, 9, '对上了：大表按时间分流、只存一份，写入和货位都摊开。'),
+      makeOption('id', '一批货拆到三个仓；按人查还行，按时间段翻要问三个仓。', [10, 11, 10], 3, 23, 9, '查询条件和分流键不一致：时间检索的触达节点从 1 变成 3。'),
+      makeOption('replicated', '三个仓各放一份；空间和写入都变成三倍。', [28, 28, 28], 1, 31, 40, '大日志禁止三份全抄：空间、写入、同步都变成三倍。'),
     ],
   },
   {
@@ -136,14 +138,14 @@ const rankedWaveTemplates: RankedWave[] = [
     title: '热门榜单刷新',
     dataName: '热门榜单缓存',
     size: 1,
-    distribution: '小型公共数据，访问突发',
-    access: '所有业务随机读取',
+    distribution: '很小，访问忽高忽低',
+    access: '谁都来读（随机）',
     publicData: true,
     defaultStrategy: 'replicated',
     options: [
-      makeOption('replicated', '复制热点榜单', '让三个 DN 都能本地读取最新榜单。', [7, 6, 7], 1, 9, 16, '复制小数据缓解公共访问尖峰。'),
-      makeOption('centralized', '集中保存榜单', '更新简单，但所有访问都挤向一个入口。', [21, 3, 3], 3, 28, 5, '热点集中会放大单节点压力。'),
-      makeOption('id', '按用户编号分片', '用户编号并不是榜单的访问条件。', [10, 9, 10], 3, 23, 7, '不匹配访问方式，查询需要广播。'),
+      makeOption('replicated', '三个仓各放一份；谁来都能就地读。', [7, 6, 7], 1, 9, 16, '对上了：小而公共就每仓一份，访问尖峰被摊开。'),
+      makeOption('centralized', '只占一份货位；访问尖峰全挤向一个仓。', [21, 3, 3], 3, 28, 5, '热点集中会放大单节点压力：一个仓被挤红，其他仓还要跨仓搬。'),
+      makeOption('id', '一批货拆到三个仓；编号不是它的查询条件，三个仓都要问。', [10, 9, 10], 3, 23, 7, '分流键和查询条件不一致：触达节点从 1 变成 3。'),
     ],
   },
   {
@@ -151,14 +153,14 @@ const rankedWaveTemplates: RankedWave[] = [
     title: '活动轨迹批量写入',
     dataName: '活动轨迹',
     size: 4,
-    distribution: '用户多，单用户轨迹连续',
-    access: '按用户查询最近记录',
+    distribution: '人多，单个人的记录连在一起',
+    access: '按人查最近记录',
     publicData: false,
     defaultStrategy: 'id',
     options: [
-      makeOption('id', '按用户编号分片', '同一用户的轨迹保持在可定位的节点。', [9, 10, 9], 1, 9, 9, '承接连续查询时，目标节点最明确。'),
-      makeOption('region', '按地区分片', '地区热点带来局部写入压力。', [20, 8, 7], 3, 24, 8, '地区并非最近记录查询的主要条件。'),
-      makeOption('replicated', '复制全部轨迹', '读路径简单，但写入需要同步三份。', [21, 21, 21], 1, 30, 34, '大型持续写入不适合全量复制。'),
+      makeOption('id', '一批货拆到三个仓；同一个人的记录都落在一个仓。', [9, 10, 9], 1, 9, 9, '对上了：按人查就按人分流，最近记录只打一个仓。'),
+      makeOption('region', '同地区的货放一起；地区热点带来写入压力，按人查要问三个仓。', [20, 8, 7], 3, 24, 8, '地区不是主要查询条件：触达节点从 1 变成 3，还有一个仓先红。'),
+      makeOption('replicated', '三个仓各放一份；写入要同步三份。', [21, 21, 21], 1, 30, 34, '大表还在持续写入，全量复制会把写入放大三倍。'),
     ],
   },
   {
@@ -166,14 +168,14 @@ const rankedWaveTemplates: RankedWave[] = [
     title: '区域营销数据汇总',
     dataName: '区域营销数据',
     size: 3,
-    distribution: '区域访问明显，热点城市集中',
+    distribution: '地区明显，几个城市特别挤',
     access: '按地区汇总',
     publicData: false,
     defaultStrategy: 'region',
     options: [
-      makeOption('region', '按地区分片', '把主要聚合条件直接放进分布规则。', [9, 10, 8], 1, 10, 8, '地区报表可以少访问节点，热点仍在可控范围。'),
-      makeOption('id', '按用户编号分片', '单用户定位不错，但区域汇总要访问三个 DN。', [10, 10, 10], 3, 22, 8, '适合用户查询，不适合区域聚合。'),
-      makeOption('status', '按营销状态分片', '同一状态数量差异大，容易形成热点。', [23, 5, 7], 3, 26, 6, '状态分布不均，查询也需要广播。'),
+      makeOption('region', '同地区的货放一起；按地区汇总只打一个仓。', [9, 10, 8], 1, 10, 8, '对上了：汇总条件就是分流键，报表只打一个仓。'),
+      makeOption('id', '一批货拆到三个仓；按人查还行，按地区汇总要问三个仓。', [10, 10, 10], 3, 22, 8, '查询条件和分流键不一致：汇总的触达节点从 1 变成 3。'),
+      makeOption('status', '同状态的货挤在一个仓；状态数量差得很大。', [23, 5, 7], 3, 26, 6, '状态分布不均：一个仓先红，汇总还要三个仓都问。'),
     ],
   },
   {
@@ -181,14 +183,14 @@ const rankedWaveTemplates: RankedWave[] = [
     title: '支付事件高峰',
     dataName: '支付事件',
     size: 4,
-    distribution: '用户分布均匀，写入峰值高',
-    access: '按用户与订单追踪',
+    distribution: '用户匀，写入高峰猛',
+    access: '按人和编号追',
     publicData: false,
     defaultStrategy: 'id',
     options: [
-      makeOption('id', '按用户编号分片', '把同一用户的事件稳定导向一个节点。', [12, 11, 12], 1, 11, 10, '高峰写入均衡，同时保留目标查询路径。'),
-      makeOption('time', '按时间范围分片', '写入能按时间切开，但用户追踪需要多节点。', [13, 12, 12], 3, 24, 9, '写入不错，查询条件却没有对齐。'),
-      makeOption('replicated', '复制支付事件', '所有节点保留完整事件流。', [27, 27, 27], 1, 32, 38, '支付事件持续写入，复制同步代价过大。'),
+      makeOption('id', '一批货拆到三个仓；同一个人的事件稳定走一个仓。', [12, 11, 12], 1, 11, 10, '对上了：写入高峰摊平，按人追只打一个仓。'),
+      makeOption('time', '每段时间放一个仓；写入能切开，按人追要问三个仓。', [13, 12, 12], 3, 24, 9, '只解决了写入：用户追踪的触达节点从 1 变成 3。'),
+      makeOption('replicated', '三个仓各放一份；写入高峰要同步三份。', [27, 27, 27], 1, 32, 38, '高峰期全量复制：写入同步变成三倍，货位也多占两份。'),
     ],
   },
   {
@@ -196,14 +198,14 @@ const rankedWaveTemplates: RankedWave[] = [
     title: '权限目录访问激增',
     dataName: '权限公共目录',
     size: 1,
-    distribution: '数据小，读取频率极高',
-    access: '所有请求按编码读取',
+    distribution: '很小，读得极凶',
+    access: '谁都来读（按编码）',
     publicData: true,
     defaultStrategy: 'replicated',
     options: [
-      makeOption('replicated', '复制权限目录', '把小型高频目录放到每个 DN。', [6, 6, 6], 1, 8, 15, '三处本地读取，减少跨节点等待。'),
-      makeOption('centralized', '只保留一份', '更新简单，但访问全部穿过一个节点。', [19, 3, 3], 3, 29, 4, '存储省了，查询和热点成本上升。'),
-      makeOption('id', '按用户编号分片', '目录访问并不以用户编号为主要条件。', [10, 9, 10], 3, 24, 7, '分布规则没有匹配公共访问。'),
+      makeOption('replicated', '三个仓各放一份；谁来都能就地读。', [6, 6, 6], 1, 8, 15, '对上了：小而公共就每仓一份，读取不再穿一个节点。'),
+      makeOption('centralized', '只占一份货位；所有请求都穿过一个仓。', [19, 3, 3], 3, 29, 4, '公共目录只放一个仓：一个节点被读红，其他仓还要跨仓搬。'),
+      makeOption('id', '一批货拆到三个仓；编号不是它的查询条件，三个仓都要问。', [10, 9, 10], 3, 24, 7, '分流键没对上公共访问：触达节点从 1 变成 3。'),
     ],
   },
   {
@@ -211,15 +213,15 @@ const rankedWaveTemplates: RankedWave[] = [
     title: 'FINAL RUSH · 大型业务数据进入',
     dataName: '大型业务数据',
     size: 5,
-    distribution: '连续大批量写入，节点余量有限',
-    access: '按用户追踪与时间检索',
+    distribution: '连续大批量写入，仓里余量不多',
+    access: '按人查 + 按时间段翻',
     publicData: false,
     finalRush: true,
     defaultStrategy: 'id',
     options: [
-      makeOption('id', '按用户编号分片', '把持续写入摊开，同时保留主要查询路径。', [15, 14, 15], 1, 13, 11, 'Final Rush 第一击：让写入和查询同时可控。'),
-      makeOption('time', '按时间范围分片', '日志连续写入较自然，但用户追踪要跨节点。', [15, 15, 14], 3, 27, 10, '只解决写入，不解决用户查询。'),
-      makeOption('replicated', '全量复制', '三台 DN 同时接收完整大型数据。', [32, 32, 32], 1, 35, 43, '在高压状态下复制大型数据会立即挤爆资源。'),
+      makeOption('id', '一批货拆到三个仓；写入摊开，按人追只打一个仓。', [15, 14, 15], 1, 13, 11, 'Final Rush 第一击：写入和查询同时压住了。'),
+      makeOption('time', '每段时间放一个仓；按时间翻还行，按人追要问三个仓。', [15, 15, 14], 3, 27, 10, '只解决写入：用户追踪的触达节点从 1 变成 3。'),
+      makeOption('replicated', '三个仓各放一份；空间和写入都变成三倍。', [32, 32, 32], 1, 35, 43, '高压下全量复制：资源立刻被挤爆。'),
     ],
   },
   {
@@ -227,15 +229,15 @@ const rankedWaveTemplates: RankedWave[] = [
     title: 'FINAL RUSH · 高频查询突然增加',
     dataName: '用户画像查询',
     size: 3,
-    distribution: '同一批热点用户被反复查询',
-    access: '按用户编号高频查询',
+    distribution: '一小撮编号被反复查',
+    access: '按编号高频反复查',
     publicData: false,
     finalRush: true,
     defaultStrategy: 'id',
     options: [
-      makeOption('id', '按编号直达目标 DN', '根据用户编号只触达一个节点。', [12, 12, 11], 1, 11, 8, '查询密度上升时，单节点路径最重要。'),
-      makeOption('broadcast', '三个 DN 全部查询', '把请求广播给全体节点再合并结果。', [20, 20, 19], 3, 40, 6, '查询节点数和跨节点搬运同时上升。'),
-      makeOption('replicated', '复制热点画像', '查询快，但在压力峰值时要同步副本。', [20, 20, 20], 1, 28, 27, '小热点可复制，但当前资源已经很紧张。'),
+      makeOption('id', '一批货拆到三个仓；同一个编号反复查也只打一个仓。', [12, 12, 11], 1, 11, 8, '查询密度上升时，只打一个仓的路径最省。'),
+      makeOption('broadcast', '三条查询同时发出；三个仓都要搬一次再合并结果。', [20, 20, 19], 3, 40, 6, '广播查询：触达节点从 1 变成 3，搬运同时抬高。'),
+      makeOption('replicated', '三个仓各放一份；压力峰值上还要多同步两份。', [20, 20, 20], 1, 28, 27, '小热点可以复制，但此刻资源已经紧张，复制要多占两份货位。'),
     ],
   },
   {
@@ -243,15 +245,15 @@ const rankedWaveTemplates: RankedWave[] = [
     title: 'FINAL RUSH · 公共数据访问激增',
     dataName: '公共活动目录',
     size: 2,
-    distribution: '公共数据请求同时涌入三个 DN',
-    access: '全局高频读取',
+    distribution: '小目录，三个仓同时来读',
+    access: '谁都来读（全局高频）',
     publicData: true,
     finalRush: true,
     defaultStrategy: 'replicated',
     options: [
-      makeOption('replicated', '就近复制公共数据', '小型公共数据在每个 DN 保留一份。', [10, 9, 10], 1, 10, 18, 'Final Rush 收尾：用小副本换查询路径稳定。'),
-      makeOption('centralized', '集中保存一份', '所有 DN 都要回到同一个节点读取。', [25, 3, 3], 3, 36, 5, '公共访问激增时，集中副本会制造瓶颈。'),
-      makeOption('broadcast', '每次请求广播', '三个 DN 都参与读取后再合并。', [18, 18, 18], 3, 43, 8, '没有复制状态，却付出持续的跨节点搬运。'),
+      makeOption('replicated', '三个仓各放一份；谁来都能就地读。', [10, 9, 10], 1, 10, 18, 'Final Rush 收尾：用多存两份换查询路径稳定。'),
+      makeOption('centralized', '只占一份货位；公共访问全挤向一个仓。', [25, 3, 3], 3, 36, 5, '公共访问激增时，只放一个仓会立刻成为瓶颈。'),
+      makeOption('broadcast', '三条查询同时发出；三个仓都要搬一次。', [18, 18, 18], 3, 43, 8, '没有复制，却每次都要三个仓一起搬：触达节点一直是 3。'),
     ],
   },
 ]
@@ -308,112 +310,112 @@ const createWaveVariant = (sourceId: number, id: number, templateId: string, pat
 const variantWaves: RankedWave[] = [
   createWaveVariant(1, 101, 'easy-device-heartbeats', {
     title: '设备心跳事件进入', dataName: '设备心跳事件', size: 2,
-    distribution: '设备编号均匀，少数园区访问集中', access: '按设备编号查询', publicData: false, defaultStrategy: 'id', difficulty: 'easy',
+    distribution: '设备编号匀，少数园区集中', access: '按设备编号查', publicData: false, defaultStrategy: 'id', difficulty: 'easy',
     loadOffset: [1, 0, 1], movementOffset: 1,
   }),
   createWaveVariant(2, 102, 'easy-favorite-changes', {
     title: '用户收藏变更', dataName: '收藏变更记录', size: 2,
-    distribution: '用户编号均匀，写入频率平稳', access: '按用户编号查询', publicData: false, defaultStrategy: 'id', difficulty: 'easy',
+    distribution: '用户编号匀，写入平稳', access: '按用户编号查', publicData: false, defaultStrategy: 'id', difficulty: 'easy',
     loadOffset: [0, 1, 0], resourceOffset: 1,
   }),
   createWaveVariant(5, 103, 'easy-service-catalog', {
     title: '服务标签目录上线', dataName: '服务标签目录', size: 1,
-    distribution: '规模小，所有服务都会读取', access: '按标签编码查询', publicData: true, defaultStrategy: 'replicated', difficulty: 'easy',
+    distribution: '很小，所有服务都读', access: '谁都来读（按标签编码）', publicData: true, defaultStrategy: 'replicated', difficulty: 'easy',
     loadOffset: [1, 1, 0], movementOffset: -1,
   }),
   createWaveVariant(3, 104, 'easy-campus-signups', {
     title: '校园活动报名', dataName: '校园活动报名', size: 3,
-    distribution: '校区是最明显的自然分布', access: '按校区汇总', publicData: false, defaultStrategy: 'region', difficulty: 'easy',
+    distribution: '校区就是天然分界', access: '按校区汇总', publicData: false, defaultStrategy: 'region', difficulty: 'easy',
     loadOffset: [0, 1, 1], movementOffset: 1,
   }),
   createWaveVariant(4, 105, 'easy-support-notices', {
     title: '客服通知队列生成', dataName: '客服通知队列', size: 2,
-    distribution: '用户编号均匀，单用户访问频繁', access: '按用户查询', publicData: false, defaultStrategy: 'id', difficulty: 'easy',
+    distribution: '用户编号匀，一个人常来查', access: '按人查', publicData: false, defaultStrategy: 'id', difficulty: 'easy',
     loadOffset: [1, 0, 1], resourceOffset: 1,
   }),
   createWaveVariant(7, 106, 'easy-search-hotwords', {
     title: '热门搜索词刷新', dataName: '热门搜索词缓存', size: 1,
-    distribution: '小型公共数据，访问突发', access: '所有业务随机读取', publicData: true, defaultStrategy: 'replicated', difficulty: 'easy',
+    distribution: '很小，访问忽高忽低', access: '谁都来读（随机）', publicData: true, defaultStrategy: 'replicated', difficulty: 'easy',
     loadOffset: [0, 1, 0], movementOffset: 1,
   }),
   createWaveVariant(6, 201, 'medium-monitoring-series', {
     title: '时间序列监控涌入', dataName: '时间序列监控', size: 5,
-    distribution: '持续增长，写入量大', access: '按时间段检索', publicData: false, defaultStrategy: 'time', difficulty: 'medium',
+    distribution: '一直在涨，写入量大', access: '按时间段翻', publicData: false, defaultStrategy: 'time', difficulty: 'medium',
     loadOffset: [1, 0, 1], resourceOffset: 1,
   }),
   createWaveVariant(10, 202, 'medium-inventory-events', {
     title: '库存变更流高峰', dataName: '库存变更事件', size: 4,
-    distribution: '仓库分布均匀，写入峰值高', access: '按商品与订单追踪', publicData: false, defaultStrategy: 'id', difficulty: 'medium',
+    distribution: '仓号均匀，写入峰值高', access: '按商品与订单追', publicData: false, defaultStrategy: 'id', difficulty: 'medium',
     loadOffset: [0, 1, 1], movementOffset: 1,
   }),
   createWaveVariant(9, 203, 'medium-cross-region-orders', {
     title: '跨区订单汇总', dataName: '跨区订单数据', size: 3,
-    distribution: '区域访问明显，热点城市集中', access: '按地区汇总', publicData: false, defaultStrategy: 'region', difficulty: 'medium',
+    distribution: '地区明显，热点城市挤', access: '按地区汇总', publicData: false, defaultStrategy: 'region', difficulty: 'medium',
     loadOffset: [1, 1, 0], resourceOffset: 1,
   }),
   createWaveVariant(8, 204, 'medium-device-traces', {
     title: '设备轨迹批量归档', dataName: '设备轨迹', size: 4,
-    distribution: '设备多，单设备轨迹连续', access: '按设备查询最近记录', publicData: false, defaultStrategy: 'id', difficulty: 'medium',
+    distribution: '设备多，单台记录连着', access: '按设备查最近记录', publicData: false, defaultStrategy: 'id', difficulty: 'medium',
     loadOffset: [1, 0, 1], movementOffset: 2,
   }),
   createWaveVariant(6, 205, 'medium-audit-stream', {
     title: '审计事件流进入', dataName: '审计事件', size: 5,
-    distribution: '持续增长，按时间窗口读取', access: '按时间段检索', publicData: false, defaultStrategy: 'time', difficulty: 'medium',
+    distribution: '持续增长，按时间窗口读', access: '按时间段翻', publicData: false, defaultStrategy: 'time', difficulty: 'medium',
     loadOffset: [0, 1, 1], resourceOffset: 2,
   }),
   createWaveVariant(10, 206, 'medium-marketing-clicks', {
     title: '营销点击流水上升', dataName: '营销点击流水', size: 4,
-    distribution: '用户分布均匀，短时写入密集', access: '按用户与活动追踪', publicData: false, defaultStrategy: 'id', difficulty: 'medium',
+    distribution: '用户匀，短时写入密集', access: '按用户与活动追', publicData: false, defaultStrategy: 'id', difficulty: 'medium',
     loadOffset: [1, 1, 0], movementOffset: 2,
   }),
   createWaveVariant(6, 207, 'medium-backup-metrics', {
     title: '备份指标持续写入', dataName: '备份指标', size: 5,
-    distribution: '数据持续增长，按时间窗口读取', access: '按时间段检索', publicData: false, defaultStrategy: 'time', difficulty: 'medium',
+    distribution: '持续增长，按时间窗口读', access: '按时间段翻', publicData: false, defaultStrategy: 'time', difficulty: 'medium',
     loadOffset: [1, 1, 0], resourceOffset: 1,
   }),
   createWaveVariant(9, 208, 'medium-delivery-regions', {
     title: '配送区域状态汇总', dataName: '配送区域状态', size: 3,
-    distribution: '区域访问明显，少数城市形成热点', access: '按地区汇总', publicData: false, defaultStrategy: 'region', difficulty: 'medium',
+    distribution: '地区明显，少数城市挤', access: '按地区汇总', publicData: false, defaultStrategy: 'region', difficulty: 'medium',
     loadOffset: [0, 1, 1], movementOffset: 1,
   }),
   createWaveVariant(10, 209, 'medium-login-audits', {
     title: '登录审计事件激增', dataName: '登录审计事件', size: 4,
-    distribution: '用户分布均匀，短时写入密集', access: '按用户与时间追踪', publicData: false, defaultStrategy: 'id', difficulty: 'medium',
+    distribution: '用户匀，短时写入密集', access: '按用户与时间追', publicData: false, defaultStrategy: 'id', difficulty: 'medium',
     loadOffset: [1, 0, 1], resourceOffset: 2,
   }),
   createWaveVariant(8, 210, 'medium-mobile-traces', {
     title: '移动端轨迹汇总', dataName: '移动端轨迹', size: 4,
-    distribution: '设备数量多，单设备记录连续', access: '按设备查询最近记录', publicData: false, defaultStrategy: 'id', difficulty: 'medium',
+    distribution: '设备多，单台记录连着', access: '按设备查最近记录', publicData: false, defaultStrategy: 'id', difficulty: 'medium',
     loadOffset: [0, 1, 1], movementOffset: 2,
   }),
   createWaveVariant(12, 301, 'hard-settlement-stream', {
     title: 'FINAL RUSH · 结算流水进入', dataName: '结算流水', size: 5,
-    distribution: '连续大批量写入，节点余量有限', access: '按账户追踪与时间检索', publicData: false, finalRush: true, defaultStrategy: 'id', difficulty: 'hard',
+    distribution: '连续大批量写入，余量不多', access: '按账户追 + 按时间翻', publicData: false, finalRush: true, defaultStrategy: 'id', difficulty: 'hard',
     loadOffset: [1, 0, 1], resourceOffset: 1,
   }),
   createWaveVariant(13, 302, 'hard-hot-account-query', {
     title: 'FINAL RUSH · 热点账户查询', dataName: '热点账户画像', size: 3,
-    distribution: '同一批热点账户被反复查询', access: '按账户编号高频查询', publicData: false, finalRush: true, defaultStrategy: 'id', difficulty: 'hard',
+    distribution: '一小撮账户被反复查', access: '按账户编号高频查', publicData: false, finalRush: true, defaultStrategy: 'id', difficulty: 'hard',
     loadOffset: [0, 1, 1], movementOffset: 1,
   }),
   createWaveVariant(14, 303, 'hard-public-config-storm', {
     title: 'FINAL RUSH · 公共配置风暴', dataName: '公共配置目录', size: 2,
-    distribution: '公共数据请求同时涌入三个 DN', access: '全局高频读取', publicData: true, finalRush: true, defaultStrategy: 'replicated', difficulty: 'hard',
+    distribution: '小目录，三个仓同时来读', access: '谁都来读（全局高频）', publicData: true, finalRush: true, defaultStrategy: 'replicated', difficulty: 'hard',
     loadOffset: [1, 0, 1], resourceOffset: 1,
   }),
   createWaveVariant(12, 304, 'hard-live-alerts', {
     title: 'FINAL RUSH · 实时告警批量进入', dataName: '实时告警事件', size: 5,
-    distribution: '告警连续涌入，写入压力陡增', access: '按设备与时间检索', publicData: false, finalRush: true, defaultStrategy: 'time', difficulty: 'hard',
+    distribution: '告警连续涌入，写入压力陡增', access: '按设备与时间翻', publicData: false, finalRush: true, defaultStrategy: 'time', difficulty: 'hard',
     loadOffset: [1, 1, 0], movementOffset: 1,
   }),
   createWaveVariant(13, 305, 'hard-risk-profiles', {
     title: 'FINAL RUSH · 风控画像被反复查询', dataName: '风控画像', size: 3,
-    distribution: '热点账户集中，查询密度极高', access: '按账户编号高频查询', publicData: false, finalRush: true, defaultStrategy: 'id', difficulty: 'hard',
+    distribution: '热点账户集中，查询密度高', access: '按账户编号高频查', publicData: false, finalRush: true, defaultStrategy: 'id', difficulty: 'hard',
     loadOffset: [1, 0, 1], resourceOffset: 1,
   }),
   createWaveVariant(14, 306, 'hard-global-labels', {
     title: 'FINAL RUSH · 全局标签访问激增', dataName: '全局标签目录', size: 2,
-    distribution: '小型公共数据，三个 DN 同时请求', access: '按标签编码高频读取', publicData: true, finalRush: true, defaultStrategy: 'replicated', difficulty: 'hard',
+    distribution: '很小，三个仓同时来读', access: '谁都来读（高频）', publicData: true, finalRush: true, defaultStrategy: 'replicated', difficulty: 'hard',
     loadOffset: [0, 1, 1], movementOffset: 1,
   }),
 ]
@@ -499,6 +501,7 @@ export const getRankedWaveSet = (seed = defaultRankedSeed) => {
 
 export const rankedWaves = getRankedWaveSet(defaultRankedSeed)
 
+// 教学三波锁死：活动记录、公共目录、海量日志——正好对上三条铁律。
 export const tutorialWaves: RankedWave[] = [1, 5, 6].map((sourceId, index) => ({
   ...(rankedWaveLibrary.find((wave) => wave.templateId === `core-${String(sourceId).padStart(2, '0')}`) as RankedWave),
   id: index + 1,

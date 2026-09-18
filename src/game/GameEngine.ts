@@ -1,5 +1,5 @@
 import { npcMessages } from '../config/npcMessages'
-import { shardingScenarios } from '../config/gameConfig'
+import { gtmPlainLine, rankedFinalRushLine, shardingScenarios, trainingLessons } from '../config/gameConfig'
 import { getRankedWave, getRankedWaveSet, rankedDecisionWindowMs, rankedWaveCount, tutorialWaves, type RankedOption, type RankedWave } from '../config/rankedWaves'
 import type { DispatchStrategy, FinalChoices, GamePhase, GameState, RankedSnapshot, RankedStrategy, ReplicationStrategy, StageTimes, WaveGrade, WaveResult, WaveScore } from './GameState'
 import { EventTracker } from './EventTracker'
@@ -76,7 +76,7 @@ export class GameEngine {
         waveStartedAt: now,
         cargoMode: 'idle',
         deathReason: undefined,
-        npcMessage: 'RANKED 线路已开启。先扫一眼任务卡和当前负载，再在 20 秒内决定这一波怎么放。',
+        npcMessage: 'RANKED 线路已开启。先扫一眼任务卡两行和当前负载，再在 20 秒内决定这一波怎么放。',
       }
     }
     if (mode === 'tutorial') {
@@ -96,7 +96,7 @@ export class GameEngine {
         tutorialStrategy: undefined,
         cargoMode: 'idle',
         deathReason: undefined,
-        npcMessage: '欢迎来到 TenDispatch！每题只按一个顺序判断：高频访问 → 数据分布 → 图上当前 DN 负载。教学不限时、不扣分，选错了还能重试。',
+        npcMessage: '欢迎来到 TenDispatch！每题只按一个顺序判断：这批货长什么样 → 待会怎么找 → 图上当前 DN 负载。教学不限时、不扣分，选错了还能重试。',
       }
     }
     return {
@@ -126,7 +126,7 @@ export class GameEngine {
         ...state,
         tutorialStep: 2,
         cargoMode: 'write',
-        npcMessage: '每个方案都是一种放数据的方法。先看任务卡里的“高频访问”，找规则最贴近它的方案；暂时不用记其它参数。',
+        npcMessage: '每个方案都是一种放数据的动作。先看任务卡里的“待会怎么找”，找动作能和它对上的那张卡；暂时不用记其它参数。',
       }
     }
     if (state.tutorialStep === 2) {
@@ -135,7 +135,7 @@ export class GameEngine {
         tutorialStep: 3,
         queryNodes: 1,
         cargoMode: 'query',
-        npcMessage: '任务卡只先看两句话：高频访问告诉你数据最常怎样使用；数据分布告诉你压力容易均匀摊开还是集中到一处。先把它们与方案名称和说明对上。',
+        npcMessage: '任务卡只有两行：这批货长什么样，告诉你压力容易摊开还是挤到一处；待会怎么找，告诉你查询会打到几个仓。先把它们和方案名称对上。',
       }
     }
     if (state.tutorialStep === 3) {
@@ -158,7 +158,7 @@ export class GameEngine {
         tutorialStrategy: undefined,
         queryNodes: 0,
         cargoMode: 'idle',
-        npcMessage: '训练 1 开始。按三步判断：高频访问 → 数据分布 → 当前 DN 负载。选好后确认，再看三个 DN 怎样变化；本波不限时。',
+        npcMessage: '训练 1 开始。顺序固定：这批货长什么样 → 待会怎么找 → 当前 DN 负载。选好后确认，看场景里货是从 CN 沿三条轨拆开，还是三个仓一起被问。',
       }
     }
     if (state.tutorialStep === 6 && state.tutorialWaveCompleted) {
@@ -170,7 +170,7 @@ export class GameEngine {
         tutorialWaveCompleted: false,
         tutorialStrategy: undefined,
         cargoMode: 'idle',
-        npcMessage: '训练 2 开始。高频访问写着所有业务都会反复读取，数据分布说明它是小型公共数据；再看图上当前负载，选最符合这三条线索的方案。',
+        npcMessage: `训练 2 开始。任务卡两行：小而公共，谁都来读。记住铁律：${trainingLessons[1].rule}`,
       }
     }
     if (state.tutorialStep === 8 && state.tutorialWaveCompleted) {
@@ -182,7 +182,7 @@ export class GameEngine {
         tutorialWaveCompleted: false,
         tutorialStrategy: undefined,
         cargoMode: 'idle',
-        npcMessage: '训练 3 开始。先看高频访问需要怎样使用数据，再看分布是否容易集中，最后检查图上哪个 DN 已经最忙，避免继续消耗它的余量。',
+        npcMessage: `训练 3 开始。任务卡两行：一直在涨，量大；按时间段翻。记住铁律：${trainingLessons[2].rule}`,
       }
     }
     if (state.tutorialStep === 10 && state.tutorialWaveCompleted) {
@@ -190,7 +190,7 @@ export class GameEngine {
         ...state,
         tutorialStep: 11,
         cargoMode: 'idle',
-        npcMessage: '三波训练完成。正式模式仍按同一顺序：高频访问 → 数据分布 → 当前 DN 负载。每波 20 秒；打开“判断方法”时暂停本题计时，关闭后继续。',
+        npcMessage: '三波训练完成，三条铁律请记住：按人找就按人分流；小名单复制、大日志不三份全抄；状态或热点地区会挤爆一个仓。正式模式只是加压，不会教新东西。',
       }
     }
     if (state.tutorialStep === 11) {
@@ -201,7 +201,7 @@ export class GameEngine {
         tutorialCompleted: true,
         screen: 'home',
         phase: 'complete',
-        npcMessage: '教学完成！只要能用高频访问、数据分布和当前负载说清为什么选择，就已经学会了。正式模式里可以随时打开“判断方法”并暂停本题计时。',
+        npcMessage: '教学完成！正式模式里仍然只有这三条铁律；不确定时可以打开“判断方法”暂停计时，先看两行任务卡，再比三个数字。',
       }
     }
     return state
@@ -225,7 +225,7 @@ export class GameEngine {
       gameStartedAt: now,
       stageStartedAt: now,
       waveStartedAt: now,
-      npcMessage: '教学重新开始。记住操作顺序：高频访问 → 数据分布 → 当前 DN 负载；三波训练会反复练习这三步。',
+      npcMessage: '教学重新开始。记住顺序：这批货长什么样 → 待会怎么找 → 当前 DN 负载；三波训练会反复练这三条铁律。',
     }
   }
 
@@ -238,6 +238,7 @@ export class GameEngine {
     const loads = this.projectRankedLoads(state, wave, selected)
     const peak = Math.max(...loads)
     const systemStatus = peak >= 95 ? 'OVERLOAD' : peak >= 80 ? 'HIGH LOAD' : 'STABLE'
+    const lesson = trainingLessons[Math.min(trainingLessons.length - 1, state.tutorialWaveIndex)]
     this.tracker.track({ type: 'tutorial_wave_completed', stage: `tutorial-wave-${state.tutorialWaveIndex + 1}`, value: selected.id, result: loads.join('/') })
     return {
       ...state,
@@ -249,8 +250,8 @@ export class GameEngine {
       systemStatus,
       cargoMode: selected.queryNodes > 1 ? 'query' : 'write',
       npcMessage: selected.id === best.id
-        ? `判断正确，这一波更合适的方案是“${best.label}”。它同时对上了高频访问、数据分布和当前 DN 余量。`
-        : `这次选的是“${selected.label}”，本波更合适的方案是“${best.label}”。回看高频访问、数据分布和确认后的三个 DN 负载。`,
+        ? `判断正确：${lesson.rule} 本波用“${best.label}”就对上了。`
+        : `这次选的是“${selected.label}”，本波更合适的是“${best.label}”。记住这一条：${lesson.rule} ${lesson.risk}`,
     }
   }
 
@@ -266,7 +267,7 @@ export class GameEngine {
       queryNodes: 0,
       systemStatus: 'STABLE',
       cargoMode: 'idle',
-      npcMessage: `重新尝试训练 ${state.tutorialWaveIndex + 1}。仍按高频访问、数据分布、当前 DN 负载依次判断，再比较确认后的负载变化。`,
+      npcMessage: `重新尝试训练 ${state.tutorialWaveIndex + 1}。任务卡还是那两行：这批货长什么样、待会怎么找；先比它们，再看当前 DN 负载。`,
     }
   }
 
@@ -289,7 +290,7 @@ export class GameEngine {
   useRankedPrediction(state: GameState): GameState {
     if (state.mode !== 'ranked' || state.phase !== 'ranked' || state.predictionUsesRemaining <= 0 || state.predictionUsedThisWave) return state
     this.tracker.track({ type: 'prediction_used', stage: `wave-${state.waveIndex + 1}`, attempt: 3 - state.predictionUsesRemaining })
-    return { ...state, predictionUsesRemaining: state.predictionUsesRemaining - 1, predictionUsedThisWave: true, npcMessage: '预测已展开：用预测后的负载验证判断，再回看本题的高频访问与数据分布。' }
+    return { ...state, predictionUsesRemaining: state.predictionUsesRemaining - 1, predictionUsedThisWave: true, npcMessage: '预测已展开：先看哪个仓会先红、找人要问几个仓，再回看任务卡的两行。' }
   }
 
   submitRankedWave(state: GameState, strategy: RankedStrategy, decisionMs = Date.now() - state.waveStartedAt): GameState {
@@ -338,6 +339,8 @@ export class GameEngine {
     const result: WaveResult = {
       wave: wave.id,
       strategy: selected.id,
+      publicData: wave.publicData,
+      preferred: selected.id === wave.defaultStrategy,
       timedOut,
       decisionMs: actualDecisionMs,
       score,
@@ -348,7 +351,7 @@ export class GameEngine {
       queryNodes: selected.queryNodes,
       crossNodeMovement,
       loads,
-        note: timedOut ? `本波未在 20 秒内确认策略，直接记 0 分；系统仅为保持线路运转而采用默认策略：${wave.options.find((option) => option.id === wave.defaultStrategy)?.label ?? selected.label}` : selected.note,
+        note: timedOut ? `本波未在 20 秒内确认策略，直接记 0 分；系统仅为保持线路运转而采用默认动作：${wave.options.find((option) => option.id === wave.defaultStrategy)?.label ?? selected.label}` : selected.note,
       predictionUsed: state.predictionUsedThisWave,
     }
     const nextPoor = state.poorCount + Number(grade === 'POOR')
@@ -405,7 +408,7 @@ export class GameEngine {
       worstWave,
       systemStatus,
       cargoMode: wave.finalRush ? 'sync' : selected.id === 'replicated' ? 'replicate' : selected.queryNodes > 1 ? 'query' : 'write',
-      npcMessage: result.note,
+      npcMessage: selected.id === 'replicated' ? `${result.note} ${gtmPlainLine}` : result.note,
     }
   }
 
@@ -446,7 +449,7 @@ export class GameEngine {
       lastDecisionSnapshot: undefined,
       lastDecisionStrategy: undefined,
       cargoMode: 'idle',
-      npcMessage: nextWave >= 11 ? 'FINAL RUSH：不引入新机制，只提高决策密度。仍按高频访问、数据分布、当前 DN 负载依次判断。' : '新波次已到达。当前负载不会重置，继续按三条线索判断。',
+      npcMessage: nextWave >= 11 ? rankedFinalRushLine : '新波次已到达。当前负载不会重置，还是那三条铁律。',
     }
   }
 
