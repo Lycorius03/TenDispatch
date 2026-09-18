@@ -1,5 +1,5 @@
 import type { GameRecord, GameRepository } from './GameRepository'
-import { getDailySeed, randomNickname } from '../config/difficulty'
+import { randomNickname } from '../config/difficulty'
 import { compareRanking } from './leaderboard'
 
 const RECORDS_KEY = 'tendispatch.records.v1'
@@ -12,10 +12,8 @@ export class LocalRepository implements GameRepository {
     localStorage.setItem(RECORDS_KEY, JSON.stringify(records.slice(-100)))
   }
 
-  getRankings(view: 'today' | 'overall' = 'overall') {
-    let records = this.bestRecords(this.readRecords())
-    if (view === 'today') records = records.filter((record) => record.mode === 'ranked' && record.dailySeed === getDailySeed())
-    return records.sort(compareRanking)
+  getRankings() {
+    return this.bestRecords(this.readRecords()).sort(compareRanking)
   }
 
   nextAnonymousName() {

@@ -832,3 +832,6 @@ button:disabled { cursor:not-allowed; opacity:.45; }
   .prediction-panel > div { grid-template-columns: 1.25fr repeat(3, minmax(0, 1fr)); }
 }
 .tutorial-feedback p.tutorial-risk { color: #ffb173; }
+
+.ranking-best { margin: 0 0 16px; color: #86a7b0; font-size: 12px; }
+.ranking-best b { margin-left: 12px; color: #e3f9fb; font: 600 22px/1 var(--display); }

@@ -70,7 +70,7 @@ function RankedResultPage({ record, onRanking, onRestart }: ResultPageProps) {
   return <main className="result-page ranked-result-page">
     <header className="topbar"><div className="brand-lockup"><span className="brand-symbol">TD</span><span><strong>OpenTenBase</strong><small>RANKED DISPATCH REPORT · {record.dailySeed}</small></span></div><span className="system-badge status-stable"><i /> {record.behavior.systemStatus ?? '调度完成'}</span></header>
     <section className="report-shell">
-      <section className="ranked-score-hero"><div><span>本局 Ranked 成绩</span><strong>{record.score}</strong><small>基础波次分 {breakdown.baseTotal ?? 0} · Combo 加成后</small></div><div className="ranked-placement"><p>个人最佳 <b>{record.personalBest ?? record.score}</b></p><p>本机今日排名 <b>#{record.rank ?? '—'}</b></p><p>距 TOP 10 <b>{topDistance}</b></p></div></section>
+      <section className="ranked-score-hero"><div><span>本局 Ranked 成绩</span><strong>{record.score}</strong><small>基础波次分 {breakdown.baseTotal ?? 0} · Combo 加成后</small></div><div className="ranked-placement"><p>个人最佳 <b>{record.personalBest ?? record.score}</b></p><p>本机排名 <b>#{record.rank ?? '—'}</b></p><p>距 TOP 10 <b>{topDistance}</b></p></div></section>
       <div className="ranked-result-grid"><div className="ranked-result-stat"><span>PERFECT 波次</span><strong>{record.behavior.perfectCount ?? breakdown.perfectCount ?? 0}</strong><small>/ 14</small></div><div className="ranked-result-stat"><span>最大 Combo</span><strong>×{comboMultiplier(record.behavior.maxCombo ?? breakdown.maxCombo ?? 0).toFixed(2)}</strong><small>{record.behavior.maxCombo ?? breakdown.maxCombo ?? 0} 波连续优秀</small></div><div className="ranked-result-stat"><span>平均决策</span><strong>{breakdown.averageDecisionMs ?? 0}<small> ms</small></strong><small>速度只占 10%</small></div><div className="ranked-result-stat"><span>最多失分</span><strong>Wave {worst?.wave ?? '—'}</strong><small>{worst?.reason ?? '保持连续观察'}</small></div></div>
       <section className="placement-report">
         <header><h2>表该怎么放</h2><span>对照官方用法 · 不重复报分</span></header>
@@ -81,9 +81,9 @@ function RankedResultPage({ record, onRanking, onRestart }: ResultPageProps) {
       </section>
       <div className="ranked-wave-table"><header><h2>14 波调度回放</h2><span>Action / Score / Grade / Combo</span></header>{waves.map((wave) => <div className={`ranked-wave-row grade-${wave.grade.toLowerCase()}`} key={`${wave.wave}-${wave.strategy}`}><b>W{String(wave.wave).padStart(2, '0')}</b><span>{wave.grade}</span><span>{actionLabelOf(wave.strategy)}</span><i><em style={{ width: `${wave.score.total}%` }} /></i><strong>{wave.score.total}</strong><small>{wave.combo > 0 ? `×${wave.multiplier.toFixed(2)}` : '清零'}</small></div>)}</div>
       <p className="next-improvement"><b>下一局最容易提升：</b>{breakdown.feedback}</p>
-      <div className="report-actions"><button className="primary-button" onClick={onRestart}><RotateIcon /> 再挑战一次</button><button className="secondary-action" onClick={onRanking}><TrophyIcon /> 查看今日榜</button></div>
+      <div className="report-actions"><button className="primary-button" onClick={onRestart}><RotateIcon /> 再挑战一次</button><button className="secondary-action" onClick={onRanking}><TrophyIcon /> 查看本机榜</button></div>
     </section>
-    <footer className="result-footer"><span>本机排行榜 · Daily Seed 保证同日波次一致</span><span>教程成绩不会进入 Ranked</span><a href="https://docs.opentenbase.org/" target="_blank" rel="noreferrer">了解 OpenTenBase <ArrowIcon /></a></footer>
+    <footer className="result-footer"><span>本机排行榜 · 同一个呼号只保留最好的一局</span><span>教程成绩不会进入 Ranked</span><a href="https://docs.opentenbase.org/" target="_blank" rel="noreferrer">了解 OpenTenBase <ArrowIcon /></a></footer>
   </main>
 }
 

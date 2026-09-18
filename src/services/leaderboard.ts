@@ -22,5 +22,5 @@ export const bestRecordPerNickname = (records: GameRecord[]): GameRecord[] => {
   return Array.from(best.values()).sort(compareRanking)
 }
 
-export const bestRecordOf = (records: GameRecord[], nickname: string): GameRecord | undefined =>
-  bestRecordPerNickname(records).find((record) => nicknameKey(record.nickname) === nicknameKey(nickname))
+export const myBestRecord = (records: GameRecord[], nickname: string): GameRecord | undefined =>
+  records.find((record) => nicknameKey(record.nickname) === nicknameKey(nickname))

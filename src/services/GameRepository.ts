@@ -44,6 +44,6 @@ export interface GameRecord {
 
 export interface GameRepository {
   save(record: GameRecord): void
-  getRankings(view?: 'today' | 'overall'): GameRecord[]
+  getRankings(): GameRecord[]
   nextAnonymousName(): string
 }

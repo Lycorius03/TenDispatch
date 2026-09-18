@@ -10,7 +10,7 @@ import { EventTracker } from './game/EventTracker'
 import { GameEngine } from './game/GameEngine'
 import { ScoreEngine } from './game/ScoreEngine'
 import { LocalRepository } from './services/LocalRepository'
-import { bestRecordOf, bestRecordPerNickname } from './services/leaderboard'
+import { bestRecordPerNickname, nicknameKey } from './services/leaderboard'
 import type { GameRecord } from './services/GameRepository'
 
 export default function App() {
@@ -86,15 +86,15 @@ export default function App() {
     }
     if (completed.mode === 'ranked') repository.save(record)
     // 榜单上同一个呼号只占一行：排名、个人最佳、距 TOP 10 都按这名玩家最好的一局算。
-    const today = bestRecordPerNickname(repository.getRankings('today'))
-    const mine = bestRecordOf(repository.getRankings('overall'), record.nickname)
-    const rankIndex = mine ? today.findIndex((item) => item.id === mine.id) : -1
+    const board = bestRecordPerNickname(repository.getRankings())
+    const mine = board.find((item) => nicknameKey(item.nickname) === nicknameKey(record.nickname))
+    const rankIndex = mine ? board.findIndex((item) => item.id === mine.id) : -1
     const personalBest = mine?.score ?? record.score
     const enriched: GameRecord = {
       ...record,
       rank: rankIndex >= 0 ? rankIndex + 1 : undefined,
       personalBest,
-      distanceTop10: rankIndex < 0 ? undefined : Math.max(0, (today[9]?.score ?? personalBest) - personalBest),
+      distanceTop10: rankIndex < 0 ? undefined : Math.max(0, (board[9]?.score ?? personalBest) - personalBest),
     }
     setLatestRecord(enriched)
     setState(completed)
@@ -113,7 +113,7 @@ export default function App() {
     />
   }
 
-  if (state.screen === 'ranking') return <LeaderboardPage records={repository.getRankings('overall')} onHome={restart} onRestart={restart} />
+  if (state.screen === 'ranking') return <LeaderboardPage records={repository.getRankings()} onHome={restart} onRestart={restart} />
   if (state.screen === 'result' && latestRecord) return <ResultPage record={latestRecord} onRanking={showRanking} onRestart={restart} />
 
   return <GamePage
