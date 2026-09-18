@@ -221,7 +221,7 @@ export const createTutorialState = (): GameState => {
     tutorialWaveStartLoads: [22, 24, 20],
     tutorialStrategy: undefined,
     deathReason: undefined,
-    npcMessage: '欢迎来到 TenDispatch！每题只按一个顺序判断：这批货长什么样 → 待会怎么找 → 图上当前 DN 负载。教学不限时、不扣分，选错了还能重试。',
+    npcMessage: '欢迎来到 TenDispatch！每题按同一个顺序判断：分布 → 查询方式 → 图上当前 DN 负载。教学不限时、不扣分，选错了还能重试。',
   }
 }
 

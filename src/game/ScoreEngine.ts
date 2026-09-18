@@ -22,7 +22,7 @@ export interface ScoreBreakdown {
   averageDecisionMs?: number
   undoPenalty?: number
   worstWave?: GameState['worstWave']
-  // 记忆点不是分数，是这两条铁律和贴场景的称号。
+  // 结算给出官方用法对照和贴场景的称号。
   badges?: string[]
   placement?: string
 }
@@ -30,10 +30,10 @@ export interface ScoreBreakdown {
 // 结算对照官方用法，不重复报分。
 export const placementAdviceFor = (result?: WaveResult) => {
   if (!result) return '大表、持续写入 → 分流、只存一份（分片表）'
-  if (result.publicData && result.strategy !== 'replicated') return '小而公共、谁都读 → 每仓一份（复制表）'
+  if (result.publicData && result.strategy !== 'replicated') return '小而公共、高频读取 → 每仓一份（复制表）'
   if (result.queryNodes > 1) return '查询条件和分流键不一致 → 触达节点从 1 变成 3'
   if (!result.publicData && result.strategy === 'replicated') return '大表、持续写入 → 分流、只存一份，不要全量复制'
-  return '动作和任务卡两行对上了，保持这个判断顺序'
+  return '动作和查询条件一致，失分来自节点余量：确认前先看哪个 DN 已经最忙'
 }
 
 export const badgesFor = (waves: WaveResult[]) => {

@@ -3,6 +3,7 @@ import { gtmPlainLine, rankedFinalRushLine, shardingScenarios, trainingLessons }
 import { getRankedWave, getRankedWaveSet, rankedDecisionWindowMs, rankedWaveCount, tutorialWaves, type RankedOption, type RankedWave } from '../config/rankedWaves'
 import type { DispatchStrategy, FinalChoices, GamePhase, GameState, RankedSnapshot, RankedStrategy, ReplicationStrategy, StageTimes, WaveGrade, WaveResult, WaveScore } from './GameState'
 import { EventTracker } from './EventTracker'
+import { projectOptionLoads } from './loadModel'
 import { finalDispatchScenario } from '../scenarios/finalDispatch'
 
 const elapsedSeconds = (from: number) => Math.max(1, Math.round((Date.now() - from) / 1000))
@@ -76,7 +77,7 @@ export class GameEngine {
         waveStartedAt: now,
         cargoMode: 'idle',
         deathReason: undefined,
-        npcMessage: 'RANKED 线路已开启。先扫一眼任务卡两行和当前负载，再在 20 秒内决定这一波怎么放。',
+        npcMessage: 'RANKED 线路已开启。先看任务卡两行和当前负载，再在 20 秒内决定这一波怎么放。',
       }
     }
     if (mode === 'tutorial') {
@@ -96,7 +97,7 @@ export class GameEngine {
         tutorialStrategy: undefined,
         cargoMode: 'idle',
         deathReason: undefined,
-        npcMessage: '欢迎来到 TenDispatch！每题只按一个顺序判断：这批货长什么样 → 待会怎么找 → 图上当前 DN 负载。教学不限时、不扣分，选错了还能重试。',
+        npcMessage: '欢迎来到 TenDispatch！每题按同一个顺序判断：分布 → 查询方式 → 图上当前 DN 负载。教学不限时、不扣分，选错了还能重试。',
       }
     }
     return {
@@ -126,7 +127,7 @@ export class GameEngine {
         ...state,
         tutorialStep: 2,
         cargoMode: 'write',
-        npcMessage: '每个方案都是一种放数据的动作。先看任务卡里的“待会怎么找”，找动作能和它对上的那张卡；暂时不用记其它参数。',
+        npcMessage: '每个方案都是一种放数据的动作。先看任务卡第二行的查询方式，找动作能和它对应的那张卡；暂时不用记其它参数。',
       }
     }
     if (state.tutorialStep === 2) {
@@ -135,7 +136,7 @@ export class GameEngine {
         tutorialStep: 3,
         queryNodes: 1,
         cargoMode: 'query',
-        npcMessage: '任务卡只有两行：这批货长什么样，告诉你压力容易摊开还是挤到一处；待会怎么找，告诉你查询会打到几个仓。先把它们和方案名称对上。',
+        npcMessage: '任务卡只有两行：第一行是这批数据的分布，第二行是它会被怎样查询。先把这两行和按钮上的动作对上。',
       }
     }
     if (state.tutorialStep === 3) {
@@ -158,7 +159,7 @@ export class GameEngine {
         tutorialStrategy: undefined,
         queryNodes: 0,
         cargoMode: 'idle',
-        npcMessage: '训练 1 开始。顺序固定：这批货长什么样 → 待会怎么找 → 当前 DN 负载。选好后确认，看场景里货是从 CN 沿三条轨拆开，还是三个仓一起被问。',
+        npcMessage: '训练 1 开始。顺序固定：分布 → 查询方式 → 当前 DN 负载。确认后注意场景：数据是从 CN 拆到三条轨，还是三个 DN 同时被访问。',
       }
     }
     if (state.tutorialStep === 6 && state.tutorialWaveCompleted) {
@@ -170,7 +171,7 @@ export class GameEngine {
         tutorialWaveCompleted: false,
         tutorialStrategy: undefined,
         cargoMode: 'idle',
-        npcMessage: `训练 2 开始。任务卡两行：小而公共，谁都来读。记住铁律：${trainingLessons[1].rule}`,
+        npcMessage: `训练 2 开始。任务卡写着数据量小、所有业务都要读。${trainingLessons[1].point}`,
       }
     }
     if (state.tutorialStep === 8 && state.tutorialWaveCompleted) {
@@ -182,7 +183,7 @@ export class GameEngine {
         tutorialWaveCompleted: false,
         tutorialStrategy: undefined,
         cargoMode: 'idle',
-        npcMessage: `训练 3 开始。任务卡两行：一直在涨，量大；按时间段翻。记住铁律：${trainingLessons[2].rule}`,
+        npcMessage: `训练 3 开始。任务卡写着持续增长、写入量大，按时间段检索。${trainingLessons[2].point}`,
       }
     }
     if (state.tutorialStep === 10 && state.tutorialWaveCompleted) {
@@ -190,7 +191,7 @@ export class GameEngine {
         ...state,
         tutorialStep: 11,
         cargoMode: 'idle',
-        npcMessage: '三波训练完成，三条铁律请记住：按人找就按人分流；小名单复制、大日志不三份全抄；状态或热点地区会挤爆一个仓。正式模式只是加压，不会教新东西。',
+        npcMessage: '三波训练完成。判断依据只有三条：按人找就按人分流；小名单复制、大日志不三份全抄；状态或热点地区会挤爆一个仓。正式模式只是提高压力。',
       }
     }
     if (state.tutorialStep === 11) {
@@ -201,7 +202,7 @@ export class GameEngine {
         tutorialCompleted: true,
         screen: 'home',
         phase: 'complete',
-        npcMessage: '教学完成！正式模式里仍然只有这三条铁律；不确定时可以打开“判断方法”暂停计时，先看两行任务卡，再比三个数字。',
+        npcMessage: '教学完成！正式模式里判断依据不变；不确定时可以打开“判断方法”暂停计时，先读任务卡两行，再比三个数字。',
       }
     }
     return state
@@ -225,7 +226,7 @@ export class GameEngine {
       gameStartedAt: now,
       stageStartedAt: now,
       waveStartedAt: now,
-      npcMessage: '教学重新开始。记住顺序：这批货长什么样 → 待会怎么找 → 当前 DN 负载；三波训练会反复练这三条铁律。',
+      npcMessage: '教学重新开始。顺序是：分布 → 查询方式 → 当前 DN 负载；三波训练都会按这个顺序走。',
     }
   }
 
@@ -250,8 +251,8 @@ export class GameEngine {
       systemStatus,
       cargoMode: selected.queryNodes > 1 ? 'query' : 'write',
       npcMessage: selected.id === best.id
-        ? `判断正确：${lesson.rule} 本波用“${best.label}”就对上了。`
-        : `这次选的是“${selected.label}”，本波更合适的是“${best.label}”。记住这一条：${lesson.rule} ${lesson.risk}`,
+        ? `判断正确：${lesson.point} 本波用的是“${best.label}”。`
+        : `这次选的是“${selected.label}”，本波更合适的是“${best.label}”。${lesson.wrong}`,
     }
   }
 
@@ -267,7 +268,7 @@ export class GameEngine {
       queryNodes: 0,
       systemStatus: 'STABLE',
       cargoMode: 'idle',
-      npcMessage: `重新尝试训练 ${state.tutorialWaveIndex + 1}。任务卡还是那两行：这批货长什么样、待会怎么找；先比它们，再看当前 DN 负载。`,
+      npcMessage: `重新尝试训练 ${state.tutorialWaveIndex + 1}。任务卡还是那两行：分布和查询方式；先比它们，再看当前 DN 负载。`,
     }
   }
 
@@ -290,7 +291,7 @@ export class GameEngine {
   useRankedPrediction(state: GameState): GameState {
     if (state.mode !== 'ranked' || state.phase !== 'ranked' || state.predictionUsesRemaining <= 0 || state.predictionUsedThisWave) return state
     this.tracker.track({ type: 'prediction_used', stage: `wave-${state.waveIndex + 1}`, attempt: 3 - state.predictionUsesRemaining })
-    return { ...state, predictionUsesRemaining: state.predictionUsesRemaining - 1, predictionUsedThisWave: true, npcMessage: '预测已展开：先看哪个仓会先红、找人要问几个仓，再回看任务卡的两行。' }
+    return { ...state, predictionUsesRemaining: state.predictionUsesRemaining - 1, predictionUsedThisWave: true, npcMessage: '预测已展开：先看哪个 DN 会先进入红区、查询要触达几个仓，再回看任务卡的两行。' }
   }
 
   submitRankedWave(state: GameState, strategy: RankedStrategy, decisionMs = Date.now() - state.waveStartedAt): GameState {
@@ -449,7 +450,7 @@ export class GameEngine {
       lastDecisionSnapshot: undefined,
       lastDecisionStrategy: undefined,
       cargoMode: 'idle',
-      npcMessage: nextWave >= 11 ? rankedFinalRushLine : '新波次已到达。当前负载不会重置，还是那三条铁律。',
+      npcMessage: nextWave >= 11 ? rankedFinalRushLine : '新波次已到达。当前负载不会重置，判断依据还是那三条。',
     }
   }
 
@@ -461,10 +462,12 @@ export class GameEngine {
   }
 
   private projectRankedLoads(state: GameState, wave: RankedWave, option: RankedOption): [number, number, number] {
-    const rushPressure = wave.finalRush ? 5 : 0
-    const replicationPressure = state.replicationState.largeCopies > 1 ? 2 : 0
-    const queryPressure = Math.round(state.queryPressure * 0.04)
-    return state.dnLoads.map((load, index) => clamp(Math.round(load * 0.82 + option.loadDelta[index] + rushPressure + replicationPressure + queryPressure))) as [number, number, number]
+    // 与按钮数字、预测面板共用同一份模型：显示的和算分的必须一致。
+    return projectOptionLoads(wave, option, {
+      dnLoads: state.dnLoads,
+      largeCopies: state.replicationState.largeCopies,
+      queryPressure: state.queryPressure,
+    })
   }
 
   private nextReplicationState(state: GameState, publicData: boolean, option: RankedOption): GameState['replicationState'] {

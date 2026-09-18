@@ -7,16 +7,16 @@ interface Props { state: Pick<GameState, 'dnLoads' | 'cargoMode' | 'queryNodes' 
 const sceneActionFor = (mode: GameState['cargoMode'], queryNodes: number, replicaDataset: 'public' | 'logs') => {
   if (mode === 'replicate') {
     return replicaDataset === 'logs'
-      ? { title: '复制：一份货在三个 DN 各落一份', detail: '大表全量复制 · 空间和写入变成三倍', tone: 'risk' }
-      : { title: '复制：一份货在三个 DN 各落一份', detail: '小名单就近读 · 多占两份货位', tone: 'gold' }
+      ? { title: '复制：三个 DN 各存一份', detail: '大表全量复制 · 占用和写入变成三倍', tone: 'risk' }
+      : { title: '复制：三个 DN 各存一份', detail: '查询不再跨节点 · 多占两份空间', tone: 'gold' }
   }
-  if (mode === 'sync') return { title: 'GTM：多仓一起改，在对齐事务', detail: '三个仓同时成功，或同时撤回', tone: 'gtm' }
+  if (mode === 'sync') return { title: 'GTM：多仓事务正在对齐', detail: '三个仓同时提交，或同时回滚', tone: 'gtm' }
   if (mode === 'query') {
     return (queryNodes || 3) === 1
-      ? { title: '查询：只打一个仓', detail: '动作和查询条件对上了', tone: 'good' }
-      : { title: '查询：三个仓都问一遍', detail: '三条橙点同时亮 · 结果还要合并', tone: 'risk' }
+      ? { title: '查询：只触达一个 DN', detail: '分流键和查询条件一致', tone: 'good' }
+      : { title: '查询：三个 DN 同时被访问', detail: '三个 DN 都要参与，结果还要合并', tone: 'risk' }
   }
-  if (mode === 'write' || mode === 'final') return { title: '分流：一批货从 CN 沿三条轨拆开', detail: '每条只存一份，写入摊平', tone: 'cyan' }
+  if (mode === 'write' || mode === 'final') return { title: '分流：CN 拆成三份，沿三条轨写入', detail: '每个 DN 只存一份', tone: 'cyan' }
   return { title: '待命', detail: '等待你的调度动作', tone: 'idle' }
 }
 
@@ -43,7 +43,7 @@ export function LogisticsCenter({ state, preview = false, replicaDataset = 'publ
         <rect x="80" y="204" width="560" height="96"/>
         <text x="102" y="236" className="scene-action-title">{action.title}</text>
         <text x="102" y="264" className="scene-sub">{action.detail}</text>
-        <text x="102" y="288" className="scene-action-sub">{skew ? '注意：三个仓负载差得很大' : '颜色分工：青写入 · 橙查询 · 金复制'}</text>
+        <text x="102" y="288" className="scene-action-sub">{skew ? '注意：三个 DN 负载差得很大' : '颜色：青写入 · 橙查询 · 金复制'}</text>
       </g>
       <g className="intake-panel"><rect x="760" y="110" width="400" height="80" rx="4"/><text x="960" y="144" textAnchor="middle">INCOMING DATA / 数据入口</text><text x="960" y="174" textAnchor="middle" className="scene-sub">{active ? '数据沿固定轨道进入协调节点' : '数据待命 · 等待你的调度策略'}</text></g>
       {[920,960,1000].map(x => <path key={x} d={`M${x} 190V225Q${x} 245 960 250`} stroke="#235272" strokeWidth="8" fill="none"/>)}
@@ -61,7 +61,7 @@ export function LogisticsCenter({ state, preview = false, replicaDataset = 'publ
         <circle cx="960" cy="320" r="44" fill={active ? '#14435a' : '#10283D'} stroke="#32C7F4"/>
         <text x="960" y="332" textAnchor="middle" className="cn-title">CN</text>
         <text x="790" y="322" className="scene-sub">协调节点</text><text x="1040" y="322" className="scene-sub">{active ? '调度中' : '待命'}</text>
-        <text x="960" y="392" textAnchor="middle" className="scene-sub">{broadcast ? 'BROADCAST · 同时发三条' : replication ? 'SPLIT COPY · 拆三份' : splitting ? 'SHARD · 拆三条轨' : 'COORDINATOR NODE'}</text>
+        <text x="960" y="392" textAnchor="middle" className="scene-sub">{broadcast ? 'BROADCAST · 同时发三条' : replication ? 'REPLICATION · 拆三份' : splitting ? 'SHARD · 拆三条轨' : 'COORDINATOR NODE'}</text>
         {[790, 1130].map(x => <circle key={x} cx={x} cy="350" r="4" fill={active ? '#32C7F4' : '#35516a'}/>)}
         {[930, 960, 990].map(x => <rect key={x} x={x-7} y="405" width="14" height="8" fill={active ? color : '#35516a'}/>)}
         {splitting && !reduce && [-1, 0, 1].map(i => <rect key={`split-${i}`} x="-14" y="-10" width="28" height="20" rx="2" fill="#32C7F4" className="shard-splinter"><animateMotion path={`M960 320Q${960 + i * 70} 360 960 412`} dur=".45s" fill="freeze"/></rect>)}
@@ -78,7 +78,7 @@ export function LogisticsCenter({ state, preview = false, replicaDataset = 'publ
         {Array.from({length:24}, (_, j) => <rect key={j} x={x+20+(j%8)*40} y={646+Math.floor(j/8)*23} width="30" height="15" rx="1" fill={j < Math.round(load/100*24) ? tint : '#142c43'} opacity={j < Math.round(load/100*24) ? .7 : .8}/>)}
         <text x={x+20} y="733" className="scene-sub">节点负载</text><text x={x+335} y="733" textAnchor="end" fill={tint}>{load}%</text>
         <rect x={x+20} y="746" width="320" height="12" fill="#142c43"/><rect x={x+20} y="746" width={320*load/100} height="12" fill={tint} className="load-fill"/>
-        {mode === 'query' && <g className={broadcast ? 'query-hit is-broadcast' : 'query-hit'}><circle cx={x+332} cy="612" r="9" fill="none" stroke="#FF9F43"/><text x={x+20} y="792" fill="#FF9F43" className="scene-sub">{broadcast ? '被问过一次 · 结果要合并' : '只问这里 · 一次到位'}</text></g>}
+        {mode === 'query' && <g className={broadcast ? 'query-hit is-broadcast' : 'query-hit'}><circle cx={x+332} cy="612" r="9" fill="none" stroke="#FF9F43"/><text x={x+20} y="792" fill="#FF9F43" className="scene-sub">{broadcast ? '参与本次查询 · 结果要合并' : '本次查询只落这里'}</text></g>}
         {replication && <g className="replica-arrival"><rect x={x+298} y="648" width="34" height="24" fill="#FFD166"/><text x={x+20} y="792" fill="#FFD166" className="scene-sub">{replicaDataset === 'logs' ? '大表副本 · 三倍存储代价' : '公共数据副本已就位'}</text></g>}
       </g> })}
       <g opacity={sync ? 1 : .35}><rect x="1650" y="130" width="160" height="140" fill="none" stroke="#345776"/><circle cx="1730" cy="184" r="32" fill="#10243B" stroke="#8BBAD8"/><circle cx="1730" cy="184" r="6" fill="#9ee9ff"/><text x="1730" y="245" textAnchor="middle" className="scene-sub">GTM / 全局事务</text>

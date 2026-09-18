@@ -75,7 +75,7 @@ function RankedResultPage({ record, onRanking, onRestart }: ResultPageProps) {
       <section className="placement-report">
         <header><h2>表该怎么放</h2><span>对照官方用法 · 不重复报分</span></header>
         <div className="placement-rules">{tablePlacementRules.map((rule) => <div key={rule.condition}><span>{rule.condition}</span><b>→ {rule.placement}</b><small>{rule.table}</small></div>)}</div>
-        <p className="placement-line"><b>最差一波 Wave {worst?.wave ?? '—'}：</b>{worst?.reason ?? '这一局每一波都对上了。'} 该对照：{breakdown.placement ?? '大表、持续写入 → 分流、只存一份（分片表）'}。</p>
+        <p className="placement-line"><b>最差一波 Wave {worst?.wave ?? '—'}：</b>{worst?.reason ?? '本局每一波的分流键和查询条件都一致。'} 该对照：{breakdown.placement ?? '大表、持续写入 → 分流、只存一份（分片表）'}。</p>
         <p className="placement-line">{gtmPlainLine}</p>
         <div className="ranked-badges">{badges.length > 0 ? badges.map((badge) => <b key={badge}>{badge}</b>) : <span>称号还空着：编号直达 / 拒绝全量复制 / 公共目录就近读 都等着你。</span>}</div>
       </section>

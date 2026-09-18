@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState, type CSSProperties, type MouseEvent as ReactMouseEvent } from 'react'
 import { getRankedWave, rankedDecisionWindowMs, rankedNextWaveDelayMs, tutorialWaves } from '../../config/rankedWaves'
 import type { DispatchStrategy, FinalChoices, GameState, RankedStrategy, ReplicationStrategy, WaveResult } from '../../game/GameState'
-import { actionLabelOf, gtmPlainLine, strategyTermOf, trainingLessons } from '../../config/gameConfig'
+import { actionLabelOf, dominantLineOf, gtmPlainLine, strategyTermOf, trainingLessons } from '../../config/gameConfig'
 import { LogisticsCenter } from '../../components/LogisticsCenter/LogisticsCenter'
+import { projectOptionLoads } from '../../game/loadModel'
 import { NPCChannel } from '../../components/NPCChannel/NPCChannel'
 import { difficulties, scoreMultiplier } from '../../config/difficulty'
 import type { RankedOption, RankedWave } from '../../config/rankedWaves'
@@ -57,23 +58,24 @@ export const getDecisionElapsedMs = (waveStartedAt: number, currentTime: number,
 
 // 结算只对照官方用法，不重复报分。
 const officialUsageFor = (strategy: RankedStrategy) => strategy === 'replicated'
-  ? '小而公共、谁都读 → 每仓一份（复制表）'
+  ? '小而公共、高频读取 → 每仓一份（复制表）'
   : '大表、持续写入 → 分流、只存一份（分片表）'
 
 const settlementLineFor = (result?: WaveResult) => {
   if (!result) return ''
-  if (result.timedOut) return '本波没在 20 秒内确认，默认动作只是替你把线路跑完。'
-  if (result.preferred) return '对上了：动作和任务卡两行一致。'
+  if (result.timedOut) return '本波未在 20 秒内确认，用的是默认动作。'
+  if (result.preferred) return '分流键和查询条件一致。'
   if (result.queryNodes > 1) return '查询条件和分流键不一致：触达节点从 1 变成 3。'
-  return '查询很快，但多占两份货位，写入要同步三份。'
+  return '查询只触达一个节点，但多存两份，写入要同步三份。'
 }
 
 function WaveBrief({ wave }: { wave?: RankedWave }) {
   if (!wave) return null
   return <p>
     <b>{wave.dataName}</b> · 规模 {Array.from({ length: 5 }, (_, index) => index < wave.size ? '★' : '☆').join('')}<br />
-    ① 这批货长什么样：{wave.distribution}<br />
-    ② 待会怎么找：{wave.access}{wave.publicData ? ' · 公共数据' : ''}
+    ① 分布：{wave.distribution}<br />
+    ② 查询：{wave.access}{wave.publicData ? ' · 公共数据' : ''}<br />
+    ③ 本波权重：{dominantLineOf(wave.dominant)}
   </p>
 }
 
@@ -107,26 +109,26 @@ export function GamePage(props: GamePageProps) {
 }
 
 const tutorialSteps = [
-  { kicker: '01 / YOUR MISSION', title: '只用三条线索完成判断', body: '每题只按一个顺序看：先看这批货长什么样，再看待会怎么找，最后看图上三个 DN 的当前负载；然后选动作、确认并观察结果。', note: '教学不限时、不计分、不失败，选错了也能重试。' },
-  { kicker: '02 / CN + DN', title: '货从哪里来，又要到哪里去', body: '画面上方是数据入口，中间的 CN 是调度台，下方三个 DN 是存放和处理数据的节点。选一个动作并确认，看货从 CN 沿三条轨拆开、落到哪个仓。', note: 'DN 负载就是节点当前有多忙；数字越高，余量越少。' },
-  { kicker: '03 / TASK CARD', title: '任务卡只有两行', body: '“这批货长什么样”告诉你压力容易摊开还是挤到一处；“待会怎么找”告诉你查询会打到几个仓。按钮第一行是物流动作，第二行才是 OpenTenBase 的说法。', note: '先把这两行话和按钮上的动作对上。' },
-  { kicker: '04 / LIVE LOAD', title: '再看图上的当前 DN 负载', body: '图上的 DN 百分比就是此刻的忙碌程度。数字越高，剩余空间越少；如果某个节点已经很忙，就避免让新动作继续把压力堆向它。', note: '固定顺序：这批货长什么样 → 待会怎么找 → 当前负载。' },
-  { kicker: '05 / TRAINING 1', title: '训练 1 · 活动记录：按人找就按人分流', body: '先对任务卡第二行：按人查，就让同一个人的数据落到同一个仓，查询才只打一个仓；再确认分布和当前余量不会制造热点。', note: '本波不限时；说清这三条依据就可以确认。' },
-  { kicker: '06 / REVIEW 1', title: '复盘 1 · 换个动作会怎样', body: '把任务卡两行、确认后的新负载和场景里的橙色查询点放在一起看：三个仓都亮，就说明查询条件和分流键没对上。', note: '你可以重试这一波，看另一种动作会把货送到哪里。' },
-  { kicker: '07 / TRAINING 2', title: '训练 2 · 公共目录：小名单复制', body: '小名单、谁都读，就让每个仓各放一份；只放一个仓，另外两个仓每次都要跨仓搬。看金色副本是不是在三个仓都落地。', note: '确认后直接观察三个 DN 的新负载。' },
-  { kicker: '08 / REVIEW 2', title: '复盘 2 · 复制换来了什么', body: '任务卡写着小而公共，确认后三个仓都拿到一份，查询就不用穿一个节点；代价是多占两份货位。', note: '继续前可以换一个动作，直接比较三个 DN 的变化。' },
-  { kicker: '09 / TRAINING 3', title: '训练 3 · 海量日志：不许三份全抄', body: '大表、一直在涨，就让它按时间分流、每条只存一份；全量复制会让空间和写入立刻变成三倍。', note: '不要背答案，始终按任务卡两行和当前负载判断。' },
-  { kicker: '10 / REVIEW 3', title: '复盘 3 · 三条铁律收束', body: '三条铁律：按人找就按人分流；小名单复制、大日志禁止三份全抄；状态或热点地区会挤爆一个 DN。正式模式只给它们加压。', note: '这套顺序比记住某个固定答案更重要。' },
-  { kicker: '11 / RANKED READY', title: '正式模式还会发生什么', body: 'Ranked 共 14 波，状态会连续继承；每波 20 秒。打开“判断方法”时本题计时暂停，关闭后继续；未确认直接记 0 分。', note: '遇到犹豫时仍按任务卡两行、再看当前负载。' },
+{ kicker: '01 / YOUR MISSION', title: '只用三条线索完成判断', body: '每题按同一个顺序看：先看分布，再看查询方式，最后看图上三个 DN 的当前负载；然后选动作、确认、看结果。', note: '教学不限时、不计分、不失败，选错了可以重试。' },
+{ kicker: '02 / CN + DN', title: '数据入口、CN 和三个 DN', body: '画面上方是数据入口，中间的 CN 是调度节点，下方三个 DN 存放和处理数据。选一个动作并确认，看数据从 CN 沿三条轨进入哪个 DN。', note: 'DN 上的百分比是节点当前负载；数字越高，剩余空间越少。' },
+{ kicker: '03 / TASK CARD', title: '任务卡的两行', body: '第一行是这批数据的分布，第二行是它会被怎样查询。评分看的是你选的动作和这两行是否一致。', note: '先把两行信息读完，再比较按钮。' },
+{ kicker: '04 / LIVE LOAD', title: '再看图上的当前 DN 负载', body: '图上的百分比是此刻的负载。数字越高，剩余空间越少；某个节点已经很忙时，不要再把压力堆给它。', note: '顺序固定：分布 → 查询方式 → 当前负载。' },
+{ kicker: '05 / TRAINING 1', title: '训练 1 · 活动记录', body: '查询方式是按用户编号查，数据按编号分布均匀，就把同一个用户的数据放在一个 DN，查询只触达一个节点；同时确认不会压满某个节点。', note: '本波不限时。' },
+{ kicker: '06 / REVIEW 1', title: '复盘 1 · 换个动作会怎样', body: '对照分布、查询方式和确认后的负载：如果查询触达了三个 DN，说明分流键和查询条件不一致。', note: '可以重试这一波，看另一种动作的结果。' },
+{ kicker: '07 / TRAINING 2', title: '训练 2 · 公共目录', body: '数据量小、所有业务都要读，就让每个 DN 各存一份；只存一份，另外两个 DN 每次读取都要跨节点。', note: '确认后直接观察三个 DN 的新负载。' },
+{ kicker: '08 / REVIEW 2', title: '复盘 2 · 复制换来了什么', body: '确认后三个 DN 都有一份，查询不再跨节点；代价是多占两份空间，写入要同步三份。', note: '继续前可以换一个动作，直接比较三个 DN 的变化。' },
+{ kicker: '09 / TRAINING 3', title: '训练 3 · 海量日志', body: '数据量大并且持续写入，就按时间分流、每条只存一份；全量复制会让占用和写入都变成三倍。', note: '按任务卡两行和当前负载判断，不用记答案。' },
+{ kicker: '10 / REVIEW 3', title: '复盘 3 · 把顺序固定下来', body: '三波下来只有三条判断：按人找就按人分流；小名单复制、大日志不三份全抄；状态或热点地区会挤爆一个 DN。正式模式只是提高压力。', note: '顺序比记住某道题的答案更重要。' },
+{ kicker: '11 / RANKED READY', title: '正式模式还会发生什么', body: 'Ranked 共 14 波，状态会连续继承；每波 20 秒。打开“判断方法”时本题计时暂停，关闭后继续；未确认直接记 0 分。', note: '犹豫时按分布、查询方式、当前负载依次判断。' },
 ]
 
 const tutorialTrainingGoals = [
-  { label: '按人找', question: '待会要按人查，这批货的编号又均匀；结合当前负载，哪个动作能让查询只打一个仓、又不制造热点？' },
-  { label: '小而公共', question: '这批货很小、谁都来读；结合当前 DN 负载，哪个动作更合适？' },
-  { label: '大表持续写入', question: '这批货很大、还一直在涨；结合当前负载，哪个动作最不容易耗尽 DN 余量？' },
+  { label: '按用户查询', question: '查询方式是按用户编号查，编号分布均匀；结合当前负载，哪个动作能让查询只触达一个 DN，又不压满节点？' },
+  { label: '数据量小、全局读取', question: '数据量小，所有业务都要读；结合当前 DN 负载，哪个动作更合适？' },
+{ label: '大表持续写入', question: '数据量大并且持续写入；结合当前负载，哪个动作不会耗尽 DN 余量？' },
 ]
 
-const previewRankedLoads = (state: Pick<GameState, 'dnLoads' | 'replicationState' | 'queryPressure'>, wave: RankedWave, option: RankedOption) => state.dnLoads.map((load, index) => Math.min(100, Math.round(load * .82 + option.loadDelta[index] + (wave.finalRush ? 5 : 0) + (state.replicationState.largeCopies > 1 ? 2 : 0) + Math.round(state.queryPressure * .04)))) as [number, number, number]
+const previewRankedLoads = (state: Pick<GameState, 'dnLoads' | 'replicationState' | 'queryPressure'>, wave: RankedWave, option: RankedOption) => projectOptionLoads(wave, option, { dnLoads: state.dnLoads, largeCopies: state.replicationState.largeCopies, queryPressure: state.queryPressure })
 
 function ModernConsole(p: GamePageProps & { displayLoads: GameState['dnLoads'] }) {
   const s = p.state
@@ -217,15 +219,15 @@ function ModernConsole(p: GamePageProps & { displayLoads: GameState['dnLoads'] }
       {tutorialGreeting && <TutorialWelcome message={s.npcMessage} onStart={() => p.onTutorialStep?.()} onExit={() => p.onTutorialExit?.()} />}
       {tutorialChoosing ? <>
         <TutorialMissionCard wave={tutorialWave} waveIndex={s.tutorialWaveIndex} loads={s.dnLoads} />
-        <div className="ranked-decision-desk tutorial-wave-desk"><div className="tutorial-npc-coach"><NPCChannel message={s.npcMessage} /></div><div className="tutorial-wave-rule"><b>按三步判断</b><span>{tutorialTrainingGoals[s.tutorialWaveIndex].question}</span></div><div className="ranked-options tutorial-wave-options">{tutorialProjected.map((option) => <button key={option.id} aria-pressed={selected === option.id} className={selected === option.id ? 'selected' : ''} onClick={() => setSelected(option.id)}><strong>{option.label}</strong><small>{option.detail}</small><i className="option-term">{strategyTermOf(option.id)}</i></button>)}</div><div className="tutorial-score-key"><span><b>① 这批货长什么样</b>{tutorialWave.distribution}</span><span><b>② 待会怎么找</b>{tutorialWave.access}</span><span><b>③ 当前负载</b>{s.dnLoads.map((load, index) => `DN-${index + 1} ${load}%`).join(' · ')}</span></div><div className="modern-action-row"><button className="secondary-action" onClick={() => p.onTutorialRestart?.()}>重新开始教学</button><button className="confirm-dispatch" disabled={!selected} onClick={() => p.onTutorialWave?.(selected as RankedStrategy)}>{selected ? '确认并查看结果' : '先选一个动作'}</button></div><p className="operation-note">教学波不限时；按“这批货长什么样 → 待会怎么找 → 当前负载”依次判断。选定动作后，场景会先把后果演一遍。</p></div>
+        <div className="ranked-decision-desk tutorial-wave-desk"><div className="tutorial-npc-coach"><NPCChannel message={s.npcMessage} /></div><div className="tutorial-wave-rule"><b>按三步判断</b><span>{tutorialTrainingGoals[s.tutorialWaveIndex].question}</span></div><div className="ranked-options tutorial-wave-options">{tutorialProjected.map((option) => <button key={option.id} aria-pressed={selected === option.id} className={selected === option.id ? 'selected' : ''} onClick={() => setSelected(option.id)}><strong>{option.label}</strong><small>{option.detail}</small><i className="option-term">{strategyTermOf(option.id)}</i></button>)}</div><div className="tutorial-score-key"><span><b>① 分布</b>{tutorialWave.distribution}</span><span><b>② 查询</b>{tutorialWave.access}</span><span><b>③ 当前负载</b>{s.dnLoads.map((load, index) => `DN-${index + 1} ${load}%`).join(' · ')}</span></div><div className="modern-action-row"><button className="secondary-action" onClick={() => p.onTutorialRestart?.()}>重新开始教学</button><button className="confirm-dispatch" disabled={!selected} onClick={() => p.onTutorialWave?.(selected as RankedStrategy)}>{selected ? '确认并查看结果' : '先选一个动作'}</button></div><p className="operation-note">教学波不限时；按“分布 → 查询方式 → 当前负载”依次判断。选定动作后，场景会先演一遍结果。</p></div>
       </> : <>
         {tutorialGuideStep ? <TutorialMissionCard wave={tutorialWave} waveIndex={s.tutorialWaveIndex} loads={s.dnLoads} staticPreview /> : <div className="modern-mission-copy"><span>{tutorial.kicker}</span><h2>{tutorial.title}</h2><p>{tutorial.body}</p><small>{tutorial.note}</small></div>}
-        <div className="tutorial-action-card"><div className="tutorial-progress">{tutorialSteps.map((step, index) => <i key={step.kicker} className={index < Math.max(0, s.tutorialStep - 1) || s.tutorialCompleted ? 'is-done' : ''} />)}</div>{tutorialGuideStep ? <TutorialOptionPreview wave={tutorialWave} /> : <div className="tutorial-npc-coach"><NPCChannel message={s.npcMessage} /></div>}{tutorialResult && <div className="tutorial-wave-result"><b>训练 {s.tutorialWaveIndex + 1} 结果 · {tutorialSelected?.label ?? '未记录'}</b><span>这批货长什么样：{tutorialWave.distribution}</span><span>待会怎么找：{tutorialWave.access}</span><span>确认后的负载：{s.dnLoads.map((load, index) => `DN-${index + 1} ${load}%`).join(' · ')}</span><small>对照任务卡两行和当前负载，看看这个结果是否符合你的判断。</small><div className={`tutorial-feedback ${tutorialSelected?.id === tutorialBestOption.id ? 'is-best' : 'is-review'}`}><strong>{tutorialSelected?.id === tutorialBestOption.id ? `判断正确：${trainingLessons[Math.min(2, s.tutorialWaveIndex)].rule}` : `这次选的是“${tutorialSelected?.label}”`}</strong><p>本波更合适的动作：<b>{tutorialBestOption.label}</b>（{strategyTermOf(tutorialBestOption.id)}）。铁律：{trainingLessons[Math.min(2, s.tutorialWaveIndex)].rule}</p>{tutorialSelected?.id !== tutorialBestOption.id && <div className="tutorial-option-analysis"><b>三个动作会把货送到哪里</b>{tutorialProjected.map((option) => <span key={option.id} className={option.id === tutorialBestOption.id ? 'is-best' : ''}><strong>{option.label}{option.id === tutorialBestOption.id ? ' · 更合适' : ''}</strong><small>确认后负载：{option.loads.map((load, index) => `DN-${index + 1} ${load}%`).join(' · ')}</small></span>)}<p>为什么选它：任务卡写着“{tutorialWave.distribution}”，待会要“{tutorialWave.access}”；铁律是“{trainingLessons[Math.min(2, s.tutorialWaveIndex)].rule}”，所以这个动作最稳。</p><p className="tutorial-risk">反例：{trainingLessons[Math.min(2, s.tutorialWaveIndex)].risk}</p></div>}</div></div>}<p>{tutorialResult ? '对照任务卡两行读完结果，再决定重试还是继续。' : tutorialGuideStep ? '当前高亮区域就是本步要认识的信息；点击画面空白处继续。' : '按提示熟悉操作，再亲手完成三波训练；教学全程不限时、不计分。'}</p><div className="tutorial-action-row">{tutorialResult && <button className="secondary-action" onClick={() => p.onTutorialWaveRetry?.()}>换个方案再试</button>}<button className="secondary-action" onClick={() => p.onTutorialExit?.()}>暂时退出教学</button>{!tutorialGuideStep && <button className="confirm-dispatch" disabled={tutorialGreeting} onClick={() => p.onTutorialStep?.()}>{s.tutorialStep === 6 ? '继续训练 2' : s.tutorialStep === 8 ? '继续训练 3' : s.tutorialStep === 10 ? '整理正式模式操作顺序' : s.tutorialStep === 11 ? '完成教学，返回首页' : '继续'}</button>}</div><p className="operation-note">固定顺序：高频访问 → 数据分布 → 当前 DN 负载；想比较结果时可以重试。</p></div>
+        <div className="tutorial-action-card"><div className="tutorial-progress">{tutorialSteps.map((step, index) => <i key={step.kicker} className={index < Math.max(0, s.tutorialStep - 1) || s.tutorialCompleted ? 'is-done' : ''} />)}</div>{tutorialGuideStep ? <TutorialOptionPreview wave={tutorialWave} /> : <div className="tutorial-npc-coach"><NPCChannel message={s.npcMessage} /></div>}{tutorialResult && <div className="tutorial-wave-result"><b>训练 {s.tutorialWaveIndex + 1} 结果 · {tutorialSelected?.label ?? '未记录'}</b><span>分布：{tutorialWave.distribution}</span><span>查询：{tutorialWave.access}</span><span>确认后的负载：{s.dnLoads.map((load, index) => `DN-${index + 1} ${load}%`).join(' · ')}</span><small>对照任务卡两行和当前负载，看这个结果是否符合你的判断。</small><div className={`tutorial-feedback ${tutorialSelected?.id === tutorialBestOption.id ? 'is-best' : 'is-review'}`}><strong>{tutorialSelected?.id === tutorialBestOption.id ? '判断正确' : `这次选的是“${tutorialSelected?.label}”`}</strong><p>本波更合适的动作：<b>{tutorialBestOption.label}</b>（{strategyTermOf(tutorialBestOption.id)}）。{trainingLessons[Math.min(2, s.tutorialWaveIndex)].point}</p>{tutorialSelected?.id !== tutorialBestOption.id && <div className="tutorial-option-analysis"><b>三个动作的结果</b>{tutorialProjected.map((option) => <span key={option.id} className={option.id === tutorialBestOption.id ? 'is-best' : ''}><strong>{option.label}{option.id === tutorialBestOption.id ? ' · 更合适' : ''}</strong><small>确认后负载：{option.loads.map((load, index) => `DN-${index + 1} ${load}%`).join(' · ')}</small></span>)}<p>为什么选它：分布是“{tutorialWave.distribution}”，查询方式是“{tutorialWave.access}”；{trainingLessons[Math.min(2, s.tutorialWaveIndex)].point}</p><p className="tutorial-risk">{trainingLessons[Math.min(2, s.tutorialWaveIndex)].wrong}</p></div>}</div></div>}<p>{tutorialResult ? '读完结果，再决定重试还是继续。' : tutorialGuideStep ? '当前高亮区域就是本步要认识的信息；点击画面空白处继续。' : '按提示熟悉操作，再亲手完成三波训练；教学全程不限时、不计分。'}</p><div className="tutorial-action-row">{tutorialResult && <button className="secondary-action" onClick={() => p.onTutorialWaveRetry?.()}>换个方案再试</button>}<button className="secondary-action" onClick={() => p.onTutorialExit?.()}>暂时退出教学</button>{!tutorialGuideStep && <button className="confirm-dispatch" disabled={tutorialGreeting} onClick={() => p.onTutorialStep?.()}>{s.tutorialStep === 6 ? '继续训练 2' : s.tutorialStep === 8 ? '继续训练 3' : s.tutorialStep === 10 ? '整理正式模式操作顺序' : s.tutorialStep === 11 ? '完成教学，返回首页' : '继续'}</button>}</div><p className="operation-note">固定顺序：高频访问 → 数据分布 → 当前 DN 负载；想比较结果时可以重试。</p></div>
       </>}
     </section> : dead ? <section className="modern-controls ranked-controls ranked-death-controls">
-      <div className="modern-mission-copy"><span>GAME OVER · NODE CAPACITY</span><h2>节点负载已满，调度中止</h2><p>{s.deathReason ?? '任一 DN 达到 100% 负载，极速模式立即结束本局。'}</p><small>本局不会再进入下一波；记住先看余量，再确认高压策略。</small></div><div className="ranked-death-card"><div className="ranked-death-readout"><span>DEAD AT WAVE</span><strong>{String(s.waveIndex + 1).padStart(2, '0')} / 14</strong></div><div className="ranked-death-loads">{s.dnLoads.map((load, index) => <span key={index} className={load >= 100 ? 'is-fatal' : ''}>DN-{index + 1} <b>{load}%</b></span>)}</div><button className="confirm-dispatch" onClick={() => p.onRankedGameOver?.()}>返回模式选择 →</button></div>
+      <div className="modern-mission-copy"><span>GAME OVER · NODE CAPACITY</span><h2>节点负载已满，调度中止</h2><p>{s.deathReason ?? '任一 DN 达到 100% 负载，极速模式立即结束本局。'}</p><small>本局不会再进入下一波；先看余量，再确认高压动作。</small></div><div className="ranked-death-card"><div className="ranked-death-readout"><span>DEAD AT WAVE</span><strong>{String(s.waveIndex + 1).padStart(2, '0')} / 14</strong></div><div className="ranked-death-loads">{s.dnLoads.map((load, index) => <span key={index} className={load >= 100 ? 'is-fatal' : ''}>DN-{index + 1} <b>{load}%</b></span>)}</div><button className="confirm-dispatch" onClick={() => p.onRankedGameOver?.()}>返回模式选择 →</button></div>
     </section> : <section className="modern-controls ranked-controls">
-      <div className="modern-mission-copy"><span>{wave?.finalRush ? `FINAL RUSH · WAVE ${wave.id}` : `WAVE ${String(wave?.id ?? 0).padStart(2, '0')} · ${wave?.publicData ? 'PUBLIC DATA' : 'DATA FLOW'}`}</span><h2>{result ? `Wave ${latest?.wave} · ${latest?.grade}` : wave?.title}</h2>{result ? <p>{latest?.note}</p> : <WaveBrief wave={wave} />}<small>本局目标：撑完 14 波后，让三个 DN 都保持低负载。比较选项卡下的查询、搬运、成本，选择综合负担最小的方案。</small><small className="ranked-death-rule">死亡条件：任一 DN 负载达到 100%，立即结束本局。</small></div>
+      <div className="modern-mission-copy"><span>{wave?.finalRush ? `FINAL RUSH · WAVE ${wave.id}` : `WAVE ${String(wave?.id ?? 0).padStart(2, '0')} · ${wave?.publicData ? 'PUBLIC DATA' : 'DATA FLOW'}`}</span><h2>{result ? `Wave ${latest?.wave} · ${latest?.grade}` : wave?.title}</h2>{result ? <p>{latest?.note}</p> : <WaveBrief wave={wave} />}<small>本局目标：撑完 14 波后，让三个 DN 都保持低负载。比较选项卡下的查询、搬运、成本，选综合负担最小的动作。</small><small className="ranked-death-rule">死亡条件：任一 DN 负载达到 100%，立即结束本局。</small></div>
       <div className="ranked-decision-desk">
         {!result && <div className={`decision-clock ${showDecisionGuide ? 'is-paused' : ''}`}><span>本波决策窗口</span><strong>{decisionRemaining.toFixed(1)}s</strong><i><b style={{ transform: `scaleX(${Math.min(1, decisionRemaining / (rankedDecisionWindowMs / 1000))})` }} /></i><small>{showDecisionGuide ? '判断方法展开中：本波计时已暂停' : '未确认策略：本波直接 0 分'}</small></div>}
         {!result && <button className="decision-guide-toggle" aria-expanded={showDecisionGuide} aria-controls="decision-data-guide" onClick={toggleDecisionGuide}>{showDecisionGuide ? '关闭判断方法 · 继续计时' : '？ 查看判断方法（暂停计时）'}</button>}
@@ -240,18 +242,18 @@ function ModernConsole(p: GamePageProps & { displayLoads: GameState['dnLoads'] }
           </div>}
         </> : <div className="ranked-options" aria-describedby={showDecisionGuide ? 'decision-data-guide' : undefined}>{rankedOptions.map((option) => <button key={option.id} aria-pressed={selected === option.id} className={selected === option.id ? 'selected' : ''} disabled={showDecisionGuide} title={showDecisionGuide ? '判断方法展开时不能选择策略' : undefined} onClick={() => { if (!showDecisionGuide) setSelected(option.id) }}><strong>{option.label}</strong><small>{option.detail}</small><i className="option-term">{strategyTermOf(option.id)}</i><em>查询 {option.queryNodes} DN · 搬运 {option.crossNodeMovement}% · 成本 {option.resourceCost}</em></button>)}</div>}
         {!result && showPrediction && <div className="prediction-panel">
-          <header><b>预测视图 · 仓会怎样</b><span>剩余 {s.predictionUsesRemaining} 次 · 看完仍要说清为什么</span></header>
+          <header><b>预测 · 负载与开销</b><span>剩余 {s.predictionUsesRemaining} 次</span></header>
           {rankedOptions.map((option) => {
             const item = projected.find((projectedOption) => projectedOption.id === option.id)
             const loads = item?.loads ?? [0, 0, 0]
             const peak = Math.max(...loads)
             const peakIndex = loads.indexOf(peak)
-            return <div key={option.id}><strong>{option.label}</strong><span className={peak >= 80 ? 'is-red' : ''}>DN-0{peakIndex + 1} {peak >= 95 ? '会爆红' : peak >= 80 ? '会先红' : '会最先忙'} · {peak}%<small>均衡 40</small></span><span>找人要问 {option.queryNodes} 个仓<small>查询 30</small></span><span>{option.id === 'replicated' ? '多占两份货位' : '只占一份货位'}<small>成本 20</small></span></div>
+            return <div key={option.id}><strong>{option.label}</strong><span className={peak >= 80 ? 'is-red' : ''}>DN-0{peakIndex + 1} 峰值 {peak}%{peak >= 80 ? '（进入红区）' : ''}<small>均衡 40</small></span><span>查询触达 {option.queryNodes} 个仓<small>查询 30</small></span><span>{option.id === 'replicated' ? '多存两份' : '只存一份'}<small>成本 20</small></span></div>
           })}
-          <p className="prediction-note">速度 10 分只看你多快确认，预测里不显示。</p>
+          <p className="prediction-note">速度 10 分只看确认有多快，预测里不显示。</p>
         </div>}
         <div className="modern-action-row">{result && s.waveIndex < 13 && <button className="secondary-action" disabled={!nextWaveReady} onClick={() => p.onRankedNext?.()}>{nextWaveReady ? '下一波 →' : `下一波将在 ${nextWaveWait}s 到达`}</button>}{result && s.undoUsesRemaining > 0 && <button className="strategy-retry" onClick={() => p.onRankedUndo?.()}>撤回最近决策 · -50</button>}{!result && s.predictionUsesRemaining > 0 && !showPrediction && <button className="secondary-action" disabled={showDecisionGuide} title={showDecisionGuide ? '判断方法展开时不能使用预测' : undefined} onClick={() => { if (!showDecisionGuide) { p.onRankedPrediction?.(); setShowPrediction(true) } }}>预测 ×{s.predictionUsesRemaining}</button>}{!result && <button className="confirm-dispatch" disabled={showDecisionGuide || !selected} title={showDecisionGuide ? '关闭判断方法后才能确认调度' : undefined} onClick={() => { if (!showDecisionGuide && selected) p.onRankedSubmit?.(selected as RankedStrategy, getDecisionElapsedMs(s.waveStartedAt, Date.now(), decisionPausedMs, decisionGuideOpenedAt)) }}>{selected ? '确认调度' : '选择一个策略'}</button>}{result && s.waveIndex === 13 && <button className="confirm-dispatch" onClick={() => p.onRankedFinish?.()}>查看本局成绩 →</button>}</div>
-        <p className="operation-note">{result ? '读完评分和“本波对应”再继续。状态、复制和资源不会在下一波重置。' : '先读选项卡两行话，再比查询、搬运、成本，选综合负担最小的动作。'}</p>
+        <p className="operation-note">{result ? '读完评分和“本波对应”再继续。状态、复制和资源不会在下一波重置。' : '先读任务卡两行，再比查询、搬运、成本，选综合负担最小的动作。'}</p>
       </div>
     </section>}
     <div className="modern-footer-note">{ranked ? dead ? '本局已结束 · 任一 DN 达到 100% 即死' : `预测 ${s.predictionUsesRemaining}/2 · 撤回 ${s.undoUsesRemaining}/1 · PERFECT ${s.perfectCount} · 最大 Combo ${s.maxCombo}` : 'CN → DN → 分流 / 复制 → GTM · 教学关不计分'}</div>
@@ -264,27 +266,27 @@ function TutorialWelcome({ message, onStart, onExit }: { message: string; onStar
       <span className="tutorial-welcome-kicker">INCOMING MESSAGE / 教学频道已接入</span>
       <h2 id="tutorial-welcome-title">欢迎来到 TenDispatch</h2>
       <NPCChannel message={message} />
-      <div className="tutorial-briefing-grid"><div><b>你是谁</b><span>数据物流中心的首席调度官</span></div><div><b>你要做什么</b><span>为每批货选一个物流动作</span></div><div><b>判断看哪里</b><span>这批货长什么样、待会怎么找、图上当前 DN 负载</span></div><div><b>怎么学习</b><span>按固定顺序完成 3 波不限时训练，每波都可重试</span></div></div>
-      <p className="tutorial-welcome-note">教学不会计时、不会计分、不会中途失败。你只需要练会一个顺序：先看这批货长什么样，再看待会怎么找，最后看图上的当前负载。按钮第一行是物流动作，第二行才是 OpenTenBase 的说法。</p>
+      <div className="tutorial-briefing-grid"><div><b>你是谁</b><span>数据物流中心的首席调度官</span></div><div><b>你要做什么</b><span>为每批数据选一个物流动作</span></div><div><b>判断看哪里</b><span>分布、查询方式、图上当前 DN 负载</span></div><div><b>怎么学习</b><span>按固定顺序完成 3 波不限时训练，每波都可重试</span></div></div>
+      <p className="tutorial-welcome-note">教学不会计时、不会计分、不会中途失败。顺序固定：先看分布，再看查询方式，最后看图上的当前负载。</p>
       <div className="tutorial-welcome-actions"><button className="secondary-action" onClick={onExit}>暂时退出</button><button className="confirm-dispatch" onClick={onStart}>开始第一步：认识工作台 →</button></div>
     </div>
   </div>
 }
 
 function TutorialMissionCard({ wave, waveIndex, loads, staticPreview = false }: { wave: RankedWave; waveIndex: number; loads: GameState['dnLoads']; staticPreview?: boolean }) {
-  return <div className="modern-mission-copy" {...(staticPreview ? { 'data-tutorial-static': true } : {})}><span>TRAINING WAVE {waveIndex + 1} / 3 · {tutorialTrainingGoals[waveIndex].label}</span><h2>{wave.title}</h2><WaveBrief wave={wave} /><small>铁律：{trainingLessons[Math.min(2, waveIndex)].rule}</small><small>当前负载：{loads.map((load, index) => `DN-${index + 1} ${load}%`).join(' · ')}</small></div>
+  return <div className="modern-mission-copy" {...(staticPreview ? { 'data-tutorial-static': true } : {})}><span>TRAINING WAVE {waveIndex + 1} / 3 · {tutorialTrainingGoals[waveIndex].label}</span><h2>{wave.title}</h2><WaveBrief wave={wave} /><small>{trainingLessons[Math.min(2, waveIndex)].point}</small><small>当前负载：{loads.map((load, index) => `DN-${index + 1} ${load}%`).join(' · ')}</small></div>
 }
 
 function TutorialOptionPreview({ wave }: { wave: RankedWave }) {
-  return <div className="tutorial-option-preview" data-tutorial-static><b>动作卡 / 第一行是动作，第二行是 OpenTenBase 的说法</b>{wave.options.map((option) => <span key={option.id}><strong>{option.label}</strong><i className="option-term">{strategyTermOf(option.id)}</i><em>{option.detail}</em></span>)}</div>
+  return <div className="tutorial-option-preview" data-tutorial-static><b>动作卡</b>{wave.options.map((option) => <span key={option.id}><strong>{option.label}</strong><i className="option-term">{strategyTermOf(option.id)}</i><em>{option.detail}</em></span>)}</div>
 }
 
 export function DecisionDataGuide() {
   return <aside className="decision-data-guide decision-data-guide--simple" id="decision-data-guide" aria-label="判断方法">
-    <header><b>先读两行话，再比三项数字</b><span>本题计时已暂停</span></header>
-    <div><strong>三张动作卡怎么读</strong><p>卡片第一行是物流动作，第二行才是 OpenTenBase 的说法（Shard / Replication）；下面三个数字是<b>查询、搬运、成本</b>。先用任务卡两行把对不上的动作排除，再比三项数字，选合起来最小的那个。</p></div>
-    <div><strong>三条铁律</strong><p>大表、持续写入 → 分流、只存一份（分片表）；小而公共、谁都读 → 每仓一份（复制表）；查询条件和分流键不一致 → 触达节点从 1 变成 3。</p></div>
-    <footer>暂停期间不能选择或确认策略。读完两行话和三项数字，关闭说明，再确认你的选择。</footer>
+    <header><b>先读两行，再比三项数字</b><span>本题计时已暂停</span></header>
+    <div><strong>三张动作卡</strong><p>卡片上是物流动作和它对应的 OpenTenBase 说法（Shard / Replication）；下面三个数字是<b>查询、搬运、成本</b>。先用任务卡两行排除对不上的动作，再比三项数字，选合起来最小的那个。</p></div>
+    <div><strong>判断依据</strong><p>大表、持续写入 → 分流、只存一份（分片表）；小而公共、高频读取 → 每仓一份（复制表）；查询条件和分流键不一致 → 触达节点从 1 变成 3。</p></div>
+    <footer>暂停期间不能选择或确认策略。读完两行和三项数字，关闭说明再确认。</footer>
   </aside>
 }
 

@@ -774,7 +774,7 @@ button:disabled { cursor:not-allowed; opacity:.45; }
   .mode-cards { grid-template-columns: 1fr; }
 }
 
-/* 决策层微调：按钮先说动作、术语第二行；场景把人话讲清楚；结算对照官方用法。 */
+/* 决策层微调：按钮写物流动作、术语放第二行；场景说明当前动作；结算对照官方用法。 */
 .scene-action rect { fill: rgba(8, 24, 38, .94); stroke: #2b5674; }
 .scene-action .scene-action-title { font-size: 21px; font-weight: 700; fill: #E6F9FF; }
 .scene-action .scene-action-sub { font-size: 13px; fill: #7fa3bd; letter-spacing: .05em; }

@@ -4,6 +4,7 @@ import { createRankedState, createTutorialState } from '../src/game/GameState.ts
 import { EventTracker } from '../src/game/EventTracker.ts'
 import { getRankedWaveSet, rankedDecisionWindowMs, rankedDifficultyQuota, rankedNextWaveDelayMs, rankedWaveLibrary } from '../src/config/rankedWaves.ts'
 import { strategyVocabulary, tablePlacementRules, trainingLessons } from '../src/config/gameConfig.ts'
+import { peakLoadOf, projectOptionLoads } from '../src/game/loadModel.ts'
 import { ScoreEngine } from '../src/game/ScoreEngine.ts'
 
 const dailyWaves = getRankedWaveSet('TD-TEST-SEED')
@@ -28,6 +29,8 @@ for (const wave of rankedWaveLibrary) {
   assert.equal(new Set(wave.options.map((option) => option.id)).size, wave.options.length, wave.templateId)
   assert.equal(wave.options.some((option) => option.id === wave.defaultStrategy), true, wave.templateId)
   assert.ok(!/分片|副本|Shard|Replication|Broadcast/.test(`${wave.distribution}${wave.access}`), wave.templateId)
+  assert.ok(['query', 'write', 'read'].includes(wave.dominant), wave.templateId)
+  assert.ok(wave.queryLoad > 0, wave.templateId)
   for (const option of wave.options) {
     assert.equal(option.label, strategyVocabulary[option.id].action, `${wave.templateId}:${option.id}`)
     assert.ok(actionSet.has(option.label), option.label)
@@ -37,6 +40,29 @@ for (const wave of rankedWaveLibrary) {
 }
 assert.equal(trainingLessons.length, 3)
 assert.equal(tablePlacementRules.length, 3)
+
+// 逻辑闭环：任务卡三条线索、按钮上的数字和评分必须是同一个结论。
+// 否则玩家按看得到的数字选，反而被"推荐答案"扣分。
+const closureContext = { dnLoads: [40, 42, 38], largeCopies: 1, queryPressure: 30 }
+for (const wave of rankedWaveLibrary) {
+  const rows = wave.options.map((option) => ({ option, loads: projectOptionLoads(wave, option, closureContext) }))
+  const best = rows.find((row) => row.option.id === wave.defaultStrategy)
+  const bestPeak = peakLoadOf(best.loads)
+  for (const row of rows.filter((item) => item.option.id !== wave.defaultStrategy)) {
+    const peak = peakLoadOf(row.loads)
+    assert.ok(peak >= bestPeak, `${wave.templateId}:${row.option.id} 峰值 ${peak} 低于推荐 ${bestPeak}`)
+    if (row.option.queryNodes > 1) {
+      assert.ok(peak > bestPeak, `${wave.templateId}:${row.option.id} 触达多个 DN 却未抬高峰值`)
+    }
+    if (!wave.publicData && row.option.id === 'replicated') {
+      assert.ok(row.option.resourceCost >= best.option.resourceCost + 15, `${wave.templateId}: 全量复制成本不够高`)
+    }
+  }
+  // 主导因素要能解释推荐答案：查询重 → 键对上查询条件；读取重 → 每仓一份；写入重 → 不做全量复制。
+  if (wave.dominant === 'query') assert.equal(best.option.queryNodes, 1, wave.templateId)
+  if (wave.dominant === 'read') assert.equal(best.option.id, 'replicated', wave.templateId)
+  if (wave.dominant === 'write') assert.notEqual(best.option.id, 'replicated', wave.templateId)
+}
 
 const engine = new GameEngine(new EventTracker())
 let state = engine.start(createRankedState('TD-TEST-SEED'), '测试调度员')
@@ -67,10 +93,11 @@ const rankedBreakdown = new ScoreEngine().calculate(report)
 assert.equal(rankedBreakdown.mode, 'ranked')
 // 结算对照官方用法，并给出贴场景的称号；分还是分，记忆点变成两条铁律。
 assert.ok(report.waveResults.every((wave) => wave.preferred === true && wave.publicData !== undefined))
-assert.ok((rankedBreakdown.placement ?? '').includes('→'))
+assert.ok((rankedBreakdown.placement ?? '').length > 0)
+assert.match(rankedBreakdown.placement ?? '', /大表、持续写入|小而公共|查询条件和分流键不一致|节点余量/)
 assert.deepEqual(rankedBreakdown.badges, ['编号直达', '拒绝全量复制', '公共目录就近读'])
 assert.match(rankedBreakdown.feedback, /对照官方用法/)
-assert.match(rankedBreakdown.feedback, /大表、持续写入|小而公共|查询条件和分流键不一致/)
+assert.match(rankedBreakdown.feedback, /大表、持续写入|小而公共|查询条件和分流键不一致|节点余量/)
 
 let prediction = engine.start(createRankedState('TD-PREDICT'), '预测测试')
 prediction = engine.useRankedPrediction(prediction)
